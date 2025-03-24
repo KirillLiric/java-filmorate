@@ -43,7 +43,7 @@ public class UserController {
             log.error("Не указан id");
             throw new ValidationException("Должен быть указан id");
         }
-        if(users.containsKey(user.getId())) {
+        if (users.containsKey(user.getId())) {
             try {
                 checkUser(user);
                 existingUser = users.get(user.getId());
@@ -65,16 +65,16 @@ public class UserController {
 
     private void checkUser(User user) {
 
-        if(user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+        if (user.getEmail().isBlank() || !user.getEmail().contains("@")) {
             throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @");
         }
-        if(user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+        if (user.getLogin().isBlank() || user.getLogin().contains(" ")) {
             throw new ValidationException("Логин не может быть пустым и содержать пробелы");
         }
-        if(user.getName() == null) {
+        if (user.getName() == null) {
             user.setName(user.getLogin());
         }
-        if(user.getBirthday().isAfter(LocalDate.now())) {
+        if (user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем.");
         }
     }
