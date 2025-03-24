@@ -44,7 +44,7 @@ public class FilmController {
             log.error("Не указан id");
             throw new ValidationException("Должен быть указан id");
         }
-        if(films.containsKey(film.getId())) {
+        if (films.containsKey(film.getId())) {
             try {
                 checkFilm(film);
                 existingFilm = films.get(film.getId());
@@ -65,7 +65,7 @@ public class FilmController {
     }
 
     private void checkFilm(Film film) {
-        if(film.getName().isBlank() || film.getDescription().length() > 200 ||
+        if (film.getName().isBlank() || film.getDescription().length() > 200 ||
                 film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28)) ||
                 film.getDuration() <= 0) {
             throw new ValidationException("Некорректные данные фильма");
