@@ -1,20 +1,20 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Component
+@Qualifier("InMemoryFilmStorage")
 public class InMemoryFilmStorage implements FilmStorage {
 
-    private final Map<Long, Film> films = new HashMap<>();
+    private final HashMap<Long, Film> films = new HashMap<>();
 
     public Collection<Film> getAll() {
         log.info("Получение всех фильмов");
@@ -76,4 +76,35 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .orElse(0);
         return ++currentMaxId;
     }
+
+    public Film addLike(Long filmId, Long userId) {
+        Film film = films.get(filmId);
+        if (film == null) {
+            throw new ValidationException("Фильм с id = " + filmId + " не найден");
+        }
+        Set<Long> filmLikes = film.getLikes();
+        if (filmLikes == null) {
+            filmLikes = new HashSet<>();
+        }
+        filmLikes.add(userId);
+        film.setLikes(filmLikes);
+        return film;
+    }
+
+    public Film removeLike(Long filmId, Long userId) {
+        Film film = films.get(filmId);
+        if (film == null) {
+            throw new ValidationException("Фильм с id = " + filmId + " не найден");
+        }
+        Set<Long> filmLikes = film.getLikes();
+        if (filmLikes != null) {
+            filmLikes.remove(userId);
+        }
+        return film;
+    }
+
+    public HashMap<Long, Film> getFilms() {
+        return films;
+    }
+
 }

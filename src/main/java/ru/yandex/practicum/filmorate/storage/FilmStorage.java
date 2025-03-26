@@ -1,15 +1,22 @@
 package ru.yandex.practicum.filmorate.storage;
 
-import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Set;
 
 public interface FilmStorage {
 
-    public Collection<Film> getAll();
+    Collection<Film> getAll();
 
-    public Film create(@RequestBody Film film);
+    Film create(Film film);
 
-    public Film update(@RequestBody Film film);
+    Film update(Film film);
+
+    Film addLike(Long filmId, Long userId);
+
+    Film removeLike(Long filmId, Long userId);
+
+    HashMap<Long, Film> getFilms();
 }
