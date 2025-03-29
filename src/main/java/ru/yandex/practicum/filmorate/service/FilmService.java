@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
@@ -39,6 +40,9 @@ public class FilmService {
     }
 
     public Film updateFilm(Film film) {
+        if (!filmStorage.existsById(film.getId())) {
+            throw new EntityNotFoundException("Фильм с id " + film.getId() + " не найден");
+        }
         return filmStorage.updateFilm(film)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -47,6 +51,12 @@ public class FilmService {
     }
 
     public void addLike(Long filmId, Long userId) {
+        if (!filmStorage.existsById(filmId)) {
+            throw new EntityNotFoundException("Фильм с id " + filmId + " не найден");
+        }
+        if (!userStorage.existsById(userId)) {
+            throw new EntityNotFoundException("Фильм с id " + userId + " не найден");
+        }
         checkUserExists(userId);
         Film film = getFilmById(filmId);
         film.addLike(userId);
@@ -54,6 +64,12 @@ public class FilmService {
     }
 
     public void removeLike(Long filmId, Long userId) {
+        if (!filmStorage.existsById(filmId)) {
+            throw new EntityNotFoundException("Фильм с id " + filmId + " не найден");
+        }
+        if (!userStorage.existsById(userId)) {
+            throw new EntityNotFoundException("Фильм с id " + userId + " не найден");
+        }
         checkUserExists(userId);
         Film film = getFilmById(filmId);
         film.removeLike(userId);

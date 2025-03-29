@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.util.*;
@@ -41,6 +42,10 @@ public class UserService {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
+        if (!userStorage.existsById(user.getId())) {
+            throw new EntityNotFoundException("Пользователь с id " + user.getId() + " не найден");
+        }
+
         return userStorage.updateUser(user)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -54,6 +59,12 @@ public class UserService {
                     HttpStatus.BAD_REQUEST,
                     "Пользователь не может добавить сам себя в друзья");
         }
+        if (!userStorage.existsById(userId)) {
+            throw new EntityNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        if (!userStorage.existsById(friendId)) {
+            throw new EntityNotFoundException("Пользователь с id " + friendId + " не найден");
+        }
         User user = getUserById(userId);
         User friend = getUserById(friendId);
         user.addFriend(friendId);
@@ -63,6 +74,12 @@ public class UserService {
     }
 
     public void removeFriend(Long userId, Long friendId) {
+        if (!userStorage.existsById(userId)) {
+            throw new EntityNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        if (!userStorage.existsById(friendId)) {
+            throw new EntityNotFoundException("Пользователь с id " + friendId + " не найден");
+        }
         User user = getUserById(userId);
         User friend = getUserById(friendId);
         user.removeFriend(friendId);
@@ -72,6 +89,9 @@ public class UserService {
     }
 
     public Collection<User> getFriends(Long userId) {
+        if (!userStorage.existsById(userId)) {
+            throw new EntityNotFoundException("Пользователь с id " + userId + " не найден");
+        }
         User user = getUserById(userId);
         return user.getFriends().stream()
                 .map(this::getUserById)
@@ -79,6 +99,12 @@ public class UserService {
     }
 
     public Collection<User> getCommonFriends(Long userId, Long otherId) {
+        if (!userStorage.existsById(userId)) {
+            throw new EntityNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        if (!userStorage.existsById(otherId)) {
+            throw new EntityNotFoundException("Пользователь с id " + otherId + " не найден");
+        }
         User user = getUserById(userId);
         User otherUser = getUserById(otherId);
 

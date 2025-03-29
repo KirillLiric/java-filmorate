@@ -41,6 +41,13 @@ public class ErrorHandler {
         return new ErrorResponse("Ошибка валидации", message);
     }
 
+    @ExceptionHandler(EntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleEntityNotFound(EntityNotFoundException e) {
+        log.warn("Сущность не найдена: {}", e.getMessage());
+        return new ErrorResponse("Сущность не найдена", e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleException(Exception e) {

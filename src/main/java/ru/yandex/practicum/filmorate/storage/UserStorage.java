@@ -10,6 +10,8 @@ public interface UserStorage {
 
     Optional<User> getUserById(Long id);
 
+    boolean existsById(Long id);
+
     User createUser(User user);
 
     Optional<User> updateUser(User user);
