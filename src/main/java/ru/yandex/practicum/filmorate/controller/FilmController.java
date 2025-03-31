@@ -1,83 +1,57 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
 
-import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
-@Slf4j
 @RestController
 @RequestMapping("/films")
 public class FilmController {
+    private final FilmService filmService;
 
-    private final Map<Long, Film> films = new HashMap<>();
+    @Autowired
+    public FilmController(FilmService filmService) {
+        this.filmService = filmService;
+    }
 
     @GetMapping
-    public Collection<Film> getAll() {
-        log.info("Получение всех фильмов");
-        return  films.values();
+    public Collection<Film> getAllFilms() {
+        return filmService.getAllFilms();
+    }
+
+    @GetMapping("/{id}")
+    public Film getFilmById(@PathVariable Long id) {
+        return filmService.getFilmById(id);
     }
 
     @PostMapping
-    public Film create(@RequestBody Film film) {
-        try {
-            checkFilm(film);
-            film.setId(getNextId());
-            films.put(film.getId(), film);
-            log.info("Создан новый фильм с id: {}", film.getId());
-            return film;
-        } catch (ValidationException e) {
-            log.error("Невозможно создать фильм: {}", e.getMessage());
-            throw e;
-        }
+    public Film createFilm(@Valid @RequestBody Film film) {
+        return filmService.createFilm(film);
     }
 
     @PutMapping
-    public Film update(@RequestBody Film film) {
-        Film existingFilm;
-        if (film.getId() == null) {
-            log.error("Не указан id");
-            throw new ValidationException("Должен быть указан id");
-        }
-        if (films.containsKey(film.getId())) {
-            try {
-                checkFilm(film);
-                existingFilm = films.get(film.getId());
-                existingFilm.setDescription(film.getDescription());
-                existingFilm.setDuration(film.getDuration());
-                existingFilm.setName(film.getName());
-                existingFilm.setReleaseDate(film.getReleaseDate());
-                log.info("Обновлен фильм с id: {}", film.getId());
-            } catch (ValidationException e) {
-                log.error("Невозможно обновить фильм: {}", e.getMessage());
-                throw e;
-            }
-        } else {
-            log.error("Существует фильм со следующим id: {}", film.getId());
-            throw new ValidationException("Фильм с id = " + film.getId() + " не найден");
-        }
-        return existingFilm;
+    public Film updateFilm(@Valid @RequestBody Film film) {
+        return filmService.updateFilm(film);
     }
 
-    private void checkFilm(Film film) {
-        if (film.getName().isBlank() || film.getDescription().length() > 200 ||
-                film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28)) ||
-                film.getDuration() <= 0) {
-            throw new ValidationException("Некорректные данные фильма");
-        }
+    @PutMapping("/{id}/like/{userId}")
+    public void addLike(@PathVariable Long id, @PathVariable Long userId) {
+        filmService.addLike(id, userId);
     }
 
-    private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+    @DeleteMapping("/{id}/like/{userId}")
+    public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
+        filmService.removeLike(id, userId);
+    }
+
+    @GetMapping("/popular")
+    public Collection<Film> getPopularFilms(
+            @RequestParam(defaultValue = "10") @Positive int count) {
+        return filmService.getPopularFilms(count);
     }
 }
