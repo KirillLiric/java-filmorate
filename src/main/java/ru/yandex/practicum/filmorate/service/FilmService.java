@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.util.*;
@@ -92,4 +94,33 @@ public class FilmService {
             );
         }
     }
+
+    public Set<Genre> getFilmGenres(Long id) {
+        return filmStorage.getFilmById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Фильм не найден"))
+                .getGenres();
+    }
+
+    public Set<Genre> updateFilmGenres(Long id, Set<Genre> genres) {
+        Film film = filmStorage.getFilmById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Фильм не найден"));
+        film.setGenres(genres);
+        filmStorage.updateFilm(film);
+        return genres;
+    }
+
+    public MpaRating getFilmMpa(Long id) {
+        return filmStorage.getFilmById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Фильм не найден"))
+                .getMpa();
+    }
+
+    public MpaRating updateFilmMpa(Long id, MpaRating mpa) {
+        Film film = filmStorage.getFilmById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Фильм не найден"));
+        film.setMpa(mpa);
+        filmStorage.updateFilm(film);
+        return mpa;
+    }
+
 }

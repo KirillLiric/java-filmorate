@@ -22,6 +22,9 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public User createUser(User user) {
         user.setId(idCounter++);
+        if (user.getFriends() == null) {
+            user.setFriends(new HashMap<>());
+        }
         users.put(user.getId(), user);
         return user;
     }

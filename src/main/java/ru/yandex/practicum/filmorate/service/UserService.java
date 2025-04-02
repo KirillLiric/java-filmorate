@@ -5,8 +5,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -67,8 +69,13 @@ public class UserService {
         }
         User user = getUserById(userId);
         User friend = getUserById(friendId);
-        user.addFriend(friendId);
-        friend.addFriend(userId);
+
+        if (friend.getFriends().containsKey(userId)) {
+            user.addFriend(friendId, FriendshipStatus.CONFIRMED);
+            friend.addFriend(userId, FriendshipStatus.CONFIRMED);
+        } else {
+            user.addFriend(friendId, FriendshipStatus.PENDING);
+        }
         userStorage.updateUser(user);
         userStorage.updateUser(friend);
     }
@@ -93,7 +100,7 @@ public class UserService {
             throw new EntityNotFoundException("Пользователь с id " + userId + " не найден");
         }
         User user = getUserById(userId);
-        return user.getFriends().stream()
+        return user.getFriends().keySet().stream()
                 .map(this::getUserById)
                 .collect(Collectors.toList());
     }
@@ -108,10 +115,43 @@ public class UserService {
         User user = getUserById(userId);
         User otherUser = getUserById(otherId);
 
-        Set<Long> commonFriendIds = new HashSet<>(user.getFriends());
-        commonFriendIds.retainAll(otherUser.getFriends());
+        Set<Long> commonFriendIds = new HashSet<>(user.getFriends().keySet());
+        commonFriendIds.retainAll(otherUser.getFriends().keySet());
 
         return commonFriendIds.stream()
+                .map(this::getUserById)
+                .collect(Collectors.toList());
+    }
+
+    public FriendshipStatus getFriendshipStatus(Long userId, Long friendId) {
+        User user = getUserById(userId);
+        return user.getFriends().getOrDefault(friendId, null);
+    }
+
+    public void confirmFriendship(Long userId, Long friendId) {
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
+
+        if (user.getFriends().containsKey(friendId) &&
+                user.getFriends().get(friendId) == FriendshipStatus.PENDING) {
+
+            user.addFriend(friendId, FriendshipStatus.CONFIRMED);
+            friend.addFriend(userId, FriendshipStatus.CONFIRMED);
+
+            userStorage.updateUser(user);
+            userStorage.updateUser(friend);
+        } else {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Нельзя подтвердить несуществующий запрос дружбы");
+        }
+    }
+
+    public Collection<User> getFriendsByStatus(Long userId, FriendshipStatus status) {
+        User user = getUserById(userId);
+        return user.getFriends().entrySet().stream()
+                .filter(entry -> entry.getValue() == status)
+                .map(Map.Entry::getKey)
                 .map(this::getUserById)
                 .collect(Collectors.toList());
     }

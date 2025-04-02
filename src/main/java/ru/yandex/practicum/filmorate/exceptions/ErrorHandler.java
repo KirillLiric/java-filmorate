@@ -2,6 +2,8 @@ package ru.yandex.practicum.filmorate.exceptions;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
+    private static final Logger log = LoggerFactory.getLogger(ErrorHandler.class);
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -46,6 +49,18 @@ public class ErrorHandler {
     public ErrorResponse handleEntityNotFound(EntityNotFoundException e) {
         log.warn("Сущность не найдена: {}", e.getMessage());
         return new ErrorResponse("Сущность не найдена", e.getMessage());
+    }
+
+    @ExceptionHandler(UnsupportedOperationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleUnsupportedOperation(UnsupportedOperationException e) {
+        return new ErrorResponse("Неподдерживаемая операция", e.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgument(IllegalArgumentException e) {
+        return new ErrorResponse("Некорректный аргумент", e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

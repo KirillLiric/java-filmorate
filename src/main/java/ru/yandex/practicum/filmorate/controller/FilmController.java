@@ -5,9 +5,12 @@ import jakarta.validation.constraints.Positive;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Collection;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/films")
@@ -53,5 +56,25 @@ public class FilmController {
     public Collection<Film> getPopularFilms(
             @RequestParam(defaultValue = "10") @Positive int count) {
         return filmService.getPopularFilms(count);
+    }
+
+    @GetMapping("/{id}/genres")
+    public Set<Genre> getFilmGenres(@PathVariable Long id) {
+        return filmService.getFilmGenres(id);
+    }
+
+    @PutMapping("/{id}/genres")
+    public Set<Genre> updateFilmGenres(@PathVariable Long id, @RequestBody Set<Genre> genres) {
+        return filmService.updateFilmGenres(id, genres);
+    }
+
+    @GetMapping("/{id}/mpa")
+    public MpaRating getFilmMpa(@PathVariable Long id) {
+        return filmService.getFilmMpa(id);
+    }
+
+    @PutMapping("/{id}/mpa")
+    public MpaRating updateFilmMpa(@PathVariable Long id, @RequestBody MpaRating mpa) {
+        return filmService.updateFilmMpa(id, mpa);
     }
 }
