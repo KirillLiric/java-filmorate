@@ -6,11 +6,4 @@ public class GenreNotFoundException extends NotFoundException {
         super(message);
     }
 
-    public GenreNotFoundException(int genreId) {
-        this("Жанр с id " + genreId + " не найден");
-    }
-
-    public GenreNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }
