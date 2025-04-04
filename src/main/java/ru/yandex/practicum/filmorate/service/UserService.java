@@ -24,7 +24,7 @@ public class UserService {
     }
 
     public User updateUser(User user) {
-        if(userStorage.getById(user.getId()) == null) {
+        if (userStorage.getById(user.getId()) == null) {
             throw new NotFoundException("Пользователь с id " + user.getId() + " не найден");
         }
         return userStorage.update(user);
@@ -67,7 +67,7 @@ public class UserService {
     }
 
     public List<User> getFriends(long userId) {
-        if(userStorage.getFriends(userId) == null) {
+        if (userStorage.getFriends(userId) == null) {
             throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
         return userStorage.getFriends(userId);
