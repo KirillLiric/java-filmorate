@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -23,6 +24,9 @@ public class UserService {
     }
 
     public User updateUser(User user) {
+        if(userStorage.getById(user.getId()) == null) {
+            throw new NotFoundException("Пользователь с id " + user.getId() + " не найден");
+        }
         return userStorage.update(user);
     }
 
@@ -35,8 +39,17 @@ public class UserService {
     }
 
     public User addFriend(long userId, long friendId) {
-        User user = getUserById(userId);
-        User friend = getUserById(friendId);
+        // Проверяем существование пользователей
+        User user = userStorage.getById(userId);
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
+
+        User friend = userStorage.getById(friendId);
+        if (friend == null) {
+            throw new NotFoundException("Пользователь с id " + friendId + " не найден");
+        }
+
         if (userId == friendId) {
             throw new ValidationException("Нельзя добавить самого себя в друзья");
         }
@@ -47,14 +60,24 @@ public class UserService {
     }
 
     public User removeFriend(long userId, long friendId) {
+        if (userStorage.getById(userId) == null || userStorage.getById(friendId) == null) {
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
         return userStorage.removeFriend(userId, friendId);
     }
 
     public List<User> getFriends(long userId) {
+        if(userStorage.getFriends(userId) == null) {
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
         return userStorage.getFriends(userId);
     }
 
     public List<User> getCommonFriends(long userId, long otherId) {
         return userStorage.getCommonFriends(userId, otherId);
+    }
+
+    public boolean isFriends(long userId, long friendId) {
+        return userStorage.isFriends(userId, friendId);
     }
 }

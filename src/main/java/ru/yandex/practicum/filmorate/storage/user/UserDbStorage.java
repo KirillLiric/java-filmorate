@@ -1,10 +1,10 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +20,19 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    public User getById(long id) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    "SELECT * FROM users WHERE user_id = ?",
+                    this::mapRowToUser,
+                    id
+            );
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
+
+    @Override
     public User create(User user) {
         SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("users")
@@ -31,31 +44,25 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User update(User user) {
-        String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
-        jdbcTemplate.update(sql,
-                user.getEmail(),
-                user.getLogin(),
-                user.getName(),
-                user.getBirthday(),
-                user.getId());
-
-        updateFriendships(user.getId(), user.getFriends());
-        return getById(user.getId());
+        try {
+            String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
+            jdbcTemplate.update(sql,
+            user.getEmail(),
+            user.getLogin(),
+            user.getName(),
+            user.getBirthday(),
+            user.getId());
+            updateFriendships(user.getId(), user.getFriends());
+            return getById(user.getId());
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
     }
 
     @Override
     public Collection<User> getAll() {
         String sql = "SELECT * FROM users";
         return jdbcTemplate.query(sql, this::mapRowToUser);
-    }
-
-    @Override
-    public User getById(long id) {
-        String sql = "SELECT * FROM users WHERE user_id = ?";
-        return jdbcTemplate.query(sql, this::mapRowToUser, id)
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new UserNotFoundException("Пользователь с id " + id + " не найден"));
     }
 
     @Override
@@ -80,8 +87,12 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<User> getFriends(long userId) {
-        String sql = "SELECT u.* FROM users u JOIN friendships f ON u.user_id = f.friend_id WHERE f.user_id = ?";
-        return jdbcTemplate.query(sql, this::mapRowToUser, userId);
+        try {
+            String sql = "SELECT u.* FROM users u JOIN friendships f ON u.user_id = f.friend_id WHERE f.user_id = ?";
+            return jdbcTemplate.query(sql, this::mapRowToUser, userId);
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
     }
 
     @Override
@@ -126,5 +137,16 @@ public class UserDbStorage implements UserStorage {
                         userId, friendId);
             }
         }
+    }
+
+    @Override
+    public boolean isFriends(long userId, long friendId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM friendships WHERE user_id = ? AND friend_id = ?",
+                Integer.class,
+                userId,
+                friendId
+        );
+        return count != null && count > 0;
     }
 }

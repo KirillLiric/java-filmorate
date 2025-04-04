@@ -103,16 +103,32 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private Film mapRowToFilm(ResultSet rs, int rowNum) throws SQLException {
+        int filmId = rs.getInt("film_id");
+
         return Film.builder()
-                .id(rs.getInt("film_id"))
+                .id(filmId)
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .releaseDate(rs.getDate("release_date").toLocalDate())
                 .duration(rs.getInt("duration"))
-                .mpa(new MpaRating(rs.getInt("rating_id"), rs.getString("mpa_name")))
-                .likes(getLikesForFilm(rs.getInt("film_id")))
-                .genres(getGenresForFilm(rs.getInt("film_id")))
+                .mpa(new MpaRating(
+                        rs.getInt("rating_id"),
+                        rs.getString("mpa_name")))
+                .likes(getLikesForFilm(filmId))
+                .genres(getOrderedGenresForFilm(filmId)) // Упорядоченные жанры
                 .build();
+    }
+
+    private List<Genre> getOrderedGenresForFilm(int filmId) {
+        String sql = "SELECT g.genre_id, g.name " +
+                "FROM film_genres fg " +
+                "JOIN genres g ON fg.genre_id = g.genre_id " +
+                "WHERE fg.film_id = ? " +
+                "ORDER BY g.genre_id"; // Сортировка по ID жанра
+
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+                        new Genre(rs.getInt("genre_id"), rs.getString("name")),
+                filmId);
     }
 
     private Set<Long> getLikesForFilm(int filmId) {
@@ -121,17 +137,22 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private Set<Genre> getGenresForFilm(int filmId) {
-        String sql = "SELECT g.genre_id, g.name FROM film_genres fg JOIN genres g ON fg.genre_id = g.genre_id WHERE fg.film_id = ?";
+        String sql = "SELECT g.genre_id, g.name" +
+                " FROM film_genres fg JOIN genres g ON fg.genre_id = g.genre_id WHERE fg.film_id = ? ORDER BY g.genre_id";
         return new HashSet<>(jdbcTemplate.query(sql, (rs, rowNum) ->
                 new Genre(rs.getInt("genre_id"), rs.getString("name")), filmId));
     }
 
-    private void updateFilmGenres(int filmId, Set<Genre> genres) {
+    private void updateFilmGenres(int filmId, List<Genre> genres) {
         jdbcTemplate.update("DELETE FROM film_genres WHERE film_id = ?", filmId);
+        Set<Integer> addedGenreIds = new HashSet<>();
         if (genres != null) {
             for (Genre genre : genres) {
-                jdbcTemplate.update("INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)",
-                        filmId, genre.getId());
+                if (!addedGenreIds.contains(genre.getId())) {
+                    jdbcTemplate.update("INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)",
+                            filmId, genre.getId());
+                }
+                addedGenreIds.add(genre.getId());
             }
         }
     }

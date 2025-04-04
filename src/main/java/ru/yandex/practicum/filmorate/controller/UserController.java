@@ -1,12 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import jakarta.validation.Valid;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
@@ -40,12 +43,22 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public User removeFriend(@PathVariable long id, @PathVariable long friendId) {
-        return userService.removeFriend(id, friendId);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeFriend(
+            @PathVariable long id,
+            @PathVariable long friendId) {
+//        if (!userService.isFriends(id, friendId)) {
+//            throw new NotFoundException("Дружеская связь не найдена");
+//        }
+        userService.removeFriend(id, friendId);
     }
 
     @GetMapping("/{id}/friends")
     public List<User> getFriends(@PathVariable long id) {
+        User user = userService.getUserById(id);
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
+        }
         return userService.getFriends(id);
     }
 

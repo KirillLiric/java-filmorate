@@ -3,9 +3,10 @@ package ru.yandex.practicum.filmorate.model;
 import lombok.Builder;
 import lombok.Data;
 import jakarta.validation.constraints.*;
+import ru.yandex.practicum.filmorate.annotations.ValidFilmReleaseDate;
+
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @Data
 @Builder
@@ -18,6 +19,7 @@ public class Film {
     @Size(max = 200, message = "Описание не должно превышать 200 символов")
     private String description;
 
+    @ValidFilmReleaseDate
     @NotNull(message = "Дата релиза обязательна")
     private LocalDate releaseDate;
 
@@ -26,5 +28,5 @@ public class Film {
 
     private Set<Long> likes = new HashSet<>();
     private MpaRating mpa;
-    private Set<Genre> genres = new HashSet<>();
+    private List<Genre> genres = new ArrayList<>();
 }
