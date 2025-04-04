@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 @Qualifier("UserDbStorage")
@@ -131,13 +132,18 @@ public class UserDbStorage implements UserStorage {
 
     private void updateFriendships(long userId, Set<Long> friends) {
         jdbcTemplate.update("DELETE FROM friendships WHERE user_id = ?", userId);
-        if (friends != null) {
-            for (Long friendId : friends) {
-                jdbcTemplate.update("INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)",
-                        userId, friendId);
-            }
+        if (friends != null && !friends.isEmpty()) {
+
+            List<Object[]> batchArgs = friends.stream()
+                    .map(friendId -> new Object[]{userId, friendId})
+                    .collect(Collectors.toList());
+
+            jdbcTemplate.batchUpdate(
+                    "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)",
+                    batchArgs
+            );
+           }
         }
-    }
 
     @Override
     public boolean isFriends(long userId, long friendId) {

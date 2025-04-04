@@ -46,9 +46,6 @@ public class UserController {
     public void removeFriend(
             @PathVariable long id,
             @PathVariable long friendId) {
-//        if (!userService.isFriends(id, friendId)) {
-//            throw new NotFoundException("Дружеская связь не найдена");
-//        }
         userService.removeFriend(id, friendId);
     }
 

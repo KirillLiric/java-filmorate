@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.model.MpaRating;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 @Qualifier("FilmDbStorage")
@@ -145,25 +146,38 @@ public class FilmDbStorage implements FilmStorage {
 
     private void updateFilmGenres(int filmId, List<Genre> genres) {
         jdbcTemplate.update("DELETE FROM film_genres WHERE film_id = ?", filmId);
-        Set<Integer> addedGenreIds = new HashSet<>();
-        if (genres != null) {
-            for (Genre genre : genres) {
-                if (!addedGenreIds.contains(genre.getId())) {
-                    jdbcTemplate.update("INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)",
-                            filmId, genre.getId());
-                }
-                addedGenreIds.add(genre.getId());
-            }
+
+        if (genres != null && !genres.isEmpty()) {
+
+            Set<Integer> uniqueGenreIds = genres.stream()
+                    .map(Genre::getId)
+                    .collect(Collectors.toSet());
+
+            List<Object[]> batchArgs = uniqueGenreIds.stream()
+                    .map(genreId -> new Object[]{filmId, genreId})
+                    .collect(Collectors.toList());
+
+            jdbcTemplate.batchUpdate(
+                    "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)",
+                    batchArgs
+            );
         }
     }
 
+
     private void updateFilmLikes(int filmId, Set<Long> likes) {
         jdbcTemplate.update("DELETE FROM likes WHERE film_id = ?", filmId);
-        if (likes != null) {
-            for (Long userId : likes) {
-                jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)",
-                        filmId, userId);
-            }
+
+        if (likes != null && !likes.isEmpty()) {
+
+            List<Object[]> batchArgs = likes.stream()
+                    .map(userId -> new Object[]{filmId, userId})
+                    .collect(Collectors.toList());
+
+            jdbcTemplate.batchUpdate(
+                    "INSERT INTO likes (film_id, user_id) VALUES (?, ?)",
+                    batchArgs
+            );
         }
     }
 }
