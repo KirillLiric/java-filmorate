@@ -29,4 +29,5 @@ public class Film {
     private Set<Long> likes = new HashSet<>();
     private MpaRating mpa;
     private List<Genre> genres = new ArrayList<>();
+    private Long directorsId;
 }
