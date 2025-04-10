@@ -26,6 +26,11 @@ public class FilmController {
         return filmService.getFilmById(id);
     }
 
+    @DeleteMapping("/{filmId}")
+    public void deleteFilm(@PathVariable int id) {
+        filmService.deleteFilm(id);
+    }
+
     @PostMapping
     public ResponseEntity<Film> createFilm(@Valid @RequestBody Film film) {
         Film createdFilm = filmService.createFilm(film);

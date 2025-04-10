@@ -30,6 +30,14 @@ public class UserService {
         return userStorage.update(user);
     }
 
+    public void deleteUser(long id) {
+        User user = userStorage.getById(id);
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
+        }
+        userStorage.delete(id);
+    }
+
     public Collection<User> getAllUsers() {
         return userStorage.getAll();
     }
