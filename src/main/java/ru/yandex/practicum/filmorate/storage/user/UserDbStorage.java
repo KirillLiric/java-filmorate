@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,7 +31,7 @@ public class UserDbStorage implements UserStorage {
                     id
             );
         } catch (EmptyResultDataAccessException e) {
-            return null;
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
     }
 
@@ -70,6 +71,7 @@ public class UserDbStorage implements UserStorage {
     @Override
     @Transactional
     public boolean delete(long id) {
+        User user = getById(id);
         jdbcTemplate.update("DELETE FROM friendships WHERE user_id = ? OR friend_id = ?", id, id);
         jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id);
         return jdbcTemplate.update("DELETE FROM users WHERE user_id = ?", id) > 0;
