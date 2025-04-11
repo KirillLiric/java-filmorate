@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.InvalidRequestException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -9,7 +10,8 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 
 @Service
 public class FilmService {
@@ -69,5 +71,17 @@ public class FilmService {
 
     public List<Film> getPopularFilms(int count) {
         return filmStorage.getPopularFilms(count);
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortConditions) {
+        List<Film> films;
+        if (sortConditions.equals("year")) {
+            films = filmStorage.getDirectorFilmsOrderYear(directorId);
+        } else if (sortConditions.equals("likes")) {
+            films = filmStorage.getDirectorFilmsOrderLikes(directorId);
+        } else {
+            throw new InvalidRequestException("Указан некорректный критерий сортировки");
+        }
+        return films;
     }
 }

@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -179,5 +180,30 @@ public class FilmDbStorage implements FilmStorage {
                     batchArgs
             );
         }
+    }
+
+    @Override
+    public List<Film> getDirectorFilmsOrderYear(Long directorId) {
+        String sql = "SELECT f.film_id, f.name AS film_name, f.description, f.release_date, " +
+                "f.duration, m.name AS mpa_rating, d.name AS director_name " +
+                "FROM films f " +
+                "LEFT JOIN mpa_rating m ON f.rating_id = m.rating_id " +
+                "LEFT JOIN directors d ON f.director_id = d.director_id " +
+                "WHERE f.director_id = ? " +
+                "ORDER BY EXTRACT(YEAR FROM f.release_date)";
+        return jdbcTemplate.query(sql, this::mapRowToFilm, directorId);
+    }
+
+    @Override
+    public List<Film> getDirectorFilmsOrderLikes(Long directorId) {
+        String sql = "SELECT f.film_id, f.name AS film_name, f.description, f.release_date, " +
+                "f.duration, m.name AS mpa_rating, d.name AS director_name, COUNT(l.user_id) AS likes_count " +
+                "FROM films f " +
+                "LEFT JOIN mpa_rating m ON f.rating_id = m.rating_id " +
+                "LEFT JOIN directors d ON f.director_id = d.director_id " +
+                "WHERE f.director_id = ? " +
+                "GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, m.name, d.name " +
+                "ORDER BY likes_count DESC";
+        return jdbcTemplate.query(sql, this::mapRowToFilm, directorId);
     }
 }

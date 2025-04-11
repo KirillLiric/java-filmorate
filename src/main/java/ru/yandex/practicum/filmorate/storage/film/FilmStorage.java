@@ -22,4 +22,7 @@ public interface FilmStorage {
 
     List<Film> getPopularFilms(int count);
 
+    List<Film> getDirectorFilmsOrderYear(Long directorId);
+
+    public List<Film> getDirectorFilmsOrderLikes(Long directorId);
 }
