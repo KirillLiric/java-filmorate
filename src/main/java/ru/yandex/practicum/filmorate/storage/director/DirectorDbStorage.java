@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.director;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,6 +15,7 @@ import java.sql.Statement;
 import java.util.Collection;
 
 @Repository
+@Qualifier("DirectorDbStorage")
 public class DirectorDbStorage implements DirectorStorage {
     private final JdbcTemplate jdbcTemplate;
     private final RowMapper<Director> directorRowMapper;
