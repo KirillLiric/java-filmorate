@@ -66,8 +66,11 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public boolean deleteFilmById(int id) {
-        String sql = "DELETE FROM films WHERE film_id = ?";
-        return jdbcTemplate.update(sql, id) > 0;
+        Film film = getFilmById(id);
+        jdbcTemplate.update("DELETE FROM film_genres WHERE film_id = ?", id);
+        jdbcTemplate.update("DELETE FROM likes WHERE film_id = ?", id);
+        jdbcTemplate.update("DELETE FROM reviews WHERE film_id = ?", id);
+        return jdbcTemplate.update("DELETE FROM films WHERE film_id = ?", id) > 0;
     }
 
     @Override
@@ -163,7 +166,6 @@ public class FilmDbStorage implements FilmStorage {
             );
         }
     }
-
 
     private void updateFilmLikes(int filmId, Set<Long> likes) {
         jdbcTemplate.update("DELETE FROM likes WHERE film_id = ?", filmId);

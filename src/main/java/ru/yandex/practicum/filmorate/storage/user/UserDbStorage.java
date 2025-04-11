@@ -68,8 +68,12 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public boolean delete(long id) {
-        String sql = "DELETE FROM users WHERE user_id = ?";
-        return jdbcTemplate.update(sql, id) > 0;
+        jdbcTemplate.update("DELETE FROM friendships WHERE user_id = ? OR friend_id = ?", id, id);
+        jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id);
+        jdbcTemplate.update("DELETE FROM reviews WHERE user_id = ?", id);
+        jdbcTemplate.update("DELETE FROM review_likes WHERE user_id = ?", id);
+        jdbcTemplate.update("DELETE FROM user_feeds WHERE user_id = ?", id);
+        return jdbcTemplate.update("DELETE FROM users WHERE user_id = ?", id) > 0;
     }
 
     @Override

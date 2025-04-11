@@ -51,6 +51,10 @@ public class FilmService {
         return filmStorage.update(film);
     }
 
+    public void deleteFilm(int id) {
+        filmStorage.deleteFilmById(id);
+    }
+
     public Collection<Film> getAllFilms() {
         return filmStorage.getAllFilms();
     }
