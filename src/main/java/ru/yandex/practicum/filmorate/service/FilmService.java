@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
 
@@ -16,13 +17,16 @@ public class FilmService {
     private final FilmStorage filmStorage;
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
+    private final UserStorage userStorage;
 
     public FilmService(@Qualifier("FilmDbStorage") FilmStorage filmStorage,
                        @Qualifier("MpaDbStorage") MpaStorage mpaStorage,
-                       @Qualifier("GenreDbStorage") GenreStorage genreStorage) {
+                       @Qualifier("GenreDbStorage") GenreStorage genreStorage,
+                       @Qualifier("UserDbStorage") UserStorage userStorage) {
         this.filmStorage = filmStorage;
         this.mpaStorage = mpaStorage;
         this.genreStorage = genreStorage;
+        this.userStorage = userStorage;
     }
 
     public Film createFilm(Film film) {
@@ -69,5 +73,15 @@ public class FilmService {
 
     public List<Film> getPopularFilms(int count) {
         return filmStorage.getPopularFilms(count);
+    }
+
+    public List<Film> getCommonFilms(long userId, long friendId) {
+        if (userStorage.getById(userId) == null) {
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        if (userStorage.getById(friendId) == null) {
+            throw new NotFoundException("Пользователь с id " + friendId + " не найден");
+        }
+        return filmStorage.getCommonFilms(userId, friendId);
     }
 }
