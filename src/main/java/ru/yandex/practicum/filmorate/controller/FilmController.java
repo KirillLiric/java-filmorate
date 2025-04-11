@@ -26,7 +26,8 @@ public class FilmController {
         return filmService.getFilmById(id);
     }
 
-    @DeleteMapping("/{filmId}")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteFilm(@PathVariable int id) {
         filmService.deleteFilm(id);
     }

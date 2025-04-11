@@ -85,7 +85,7 @@ public class UserService {
         return userStorage.getCommonFriends(userId, otherId);
     }
 
-    public boolean isFriends(long userId, long friendId) {
+     public boolean isFriends(long userId, long friendId) {
         return userStorage.isFriends(userId, friendId);
     }
 }
