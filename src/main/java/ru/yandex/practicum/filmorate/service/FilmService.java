@@ -68,6 +68,13 @@ public class FilmService {
     }
 
     public List<Film> getPopularFilms(int count) {
-        return filmStorage.getPopularFilms(count);
+        return getPopularFilms(count, null, null);
+    }
+
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        if (genreId != null) {
+            genreStorage.getById(genreId);
+        }
+        return filmStorage.getPopularFilms(count, genreId, year);
     }
 }
