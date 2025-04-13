@@ -111,75 +111,48 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<Film> getRecommendedFilms(long userId) {
-        // Проверяем существование пользователя
+
         if (!userExists(userId)) {
             throw new UserNotFoundException("User with id " + userId + " not found");
         }
 
-        // Проверяем, есть ли у пользователя лайки
-        boolean hasLikes = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) > 0 FROM likes WHERE user_id = ?",
-                Boolean.class,
-                userId
-        );
-
-        if (!hasLikes) {
-            // Для пользователя без лайков возвращаем пустой список
-            return Collections.emptyList();
-        }
-
-        // Находим пользователей с общими лайками
-        String similarUsersSql = "SELECT l2.user_id, COUNT(l2.film_id) AS common_count " +
-                "FROM likes l1 " +
-                "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
-                "WHERE l1.user_id = ? " +
-                "GROUP BY l2.user_id " +
-                "HAVING COUNT(l2.film_id) > 0 " +
-                "ORDER BY common_count DESC";
-
-        List<Long> similarUserIds = jdbcTemplate.queryForList(similarUsersSql, Long.class, userId);
-
-        if (similarUserIds.isEmpty()) {
-            // Если нет пользователей с общими лайками - возвращаем пустой список
-            return Collections.emptyList();
-        }
-
-        // Получаем фильмы, которые лайкнули похожие пользователи, но не текущий
-        String recommendedFilmsSql = "SELECT f.*, mr.name AS mpa_name " +
+        String recommendedFilmsSql = "SELECT f.*, mr.name AS mpa_name, " +
+                "COUNT(DISTINCT l.user_id) AS likes_count " +
                 "FROM films f " +
                 "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
-                "JOIN likes l ON f.film_id = l.film_id " +
-                "WHERE l.user_id IN (" + String.join(",", Collections.nCopies(similarUserIds.size(), "?")) + ") " +
-                "AND f.film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?) " +
-                "GROUP BY f.film_id";
+                "LEFT JOIN likes l ON f.film_id = l.film_id " +
+                "WHERE f.film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?) " +
+                "AND EXISTS ( " +
+                "   SELECT 1 FROM likes l1 " +
+                "   JOIN likes l2 ON l1.film_id = l2.film_id " +
+                "   WHERE l1.user_id = ? AND l2.user_id != ? " +
+                ") " +
+                "GROUP BY f.film_id " +
+                "ORDER BY likes_count DESC";
 
-        List<Object> params = new ArrayList<>(similarUserIds);
-        params.add(userId);
-
-        return jdbcTemplate.query(recommendedFilmsSql, new FilmRowMapper(), params.toArray());
+        return jdbcTemplate.query(recommendedFilmsSql, new FilmRowMapper(), userId, userId, userId);
     }
 
     private static class FilmRowMapper implements RowMapper<Film> {
         @Override
         public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
-            // Получаем MPA рейтинг
-            MpaRating mpa = null;
-            if (rs.getInt("rating_id") > 0) {
-                mpa = new MpaRating(
-                        rs.getInt("rating_id"),
-                        rs.getString("mpa_name")
-                );
-            }
 
-            // Строим объект Film
-            return Film.builder()
+            Film film = Film.builder()
                     .id(rs.getInt("film_id"))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
                     .releaseDate(rs.getDate("release_date").toLocalDate())
                     .duration(rs.getInt("duration"))
-                    .mpa(mpa)
                     .build();
+
+            if (rs.getObject("rating_id") != null) {
+                film.setMpa(new MpaRating(
+                        rs.getInt("rating_id"),
+                        rs.getString("mpa_name")
+                ));
+            }
+
+            return film;
         }
     }
 
