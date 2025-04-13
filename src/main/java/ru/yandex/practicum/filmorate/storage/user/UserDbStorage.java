@@ -111,6 +111,20 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<Film> getRecommendedFilms(long userId) {
 
+        boolean hasLikes = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) > 0 FROM likes WHERE user_id = ?",
+                Boolean.class,
+                userId
+        );
+
+        if (!hasLikes) {
+            String sql = "SELECT f.*, mr.name AS mpa_name " +
+                    "FROM films f " +
+                    "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
+                    "WHERE f.film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?)";
+            return jdbcTemplate.query(sql, new FilmRowMapper(), userId);
+        }
+
         String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
                 "FROM likes l1 " +
                 "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
