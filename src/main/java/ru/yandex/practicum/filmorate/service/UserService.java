@@ -1,7 +1,9 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
@@ -80,10 +82,11 @@ public class UserService {
     }
 
     public List<Film> getRecommendedFilms(long userId) {
-        if (getUserById(userId) == null) {
-            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+        try {
+            return userStorage.getRecommendedFilms(userId);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
-        return userStorage.getRecommendedFilms(userId);
     }
 
     public boolean isFriends(long userId, long friendId) {
