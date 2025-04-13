@@ -2,12 +2,15 @@ package ru.yandex.practicum.filmorate.storage.film;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
+import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -91,6 +94,56 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN likes l ON f.film_id = l.film_id " +
                 "GROUP BY f.film_id ORDER BY likes_count DESC LIMIT ?";
         return jdbcTemplate.query(sql, this::mapRowToFilm, count);
+    }
+
+    @Override
+    public List<Film> getRecommendedFilms(long userId) {
+
+        String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
+                "FROM likes l1 " +
+                "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
+                "WHERE l1.user_id = ? " +
+                "GROUP BY l2.user_id " +
+                "ORDER BY common_likes DESC " +
+                "LIMIT 3";
+
+        Long similarUserId = jdbcTemplate.queryForObject(similarUsersQuery,
+                (rs, rowNum) -> rs.getLong("user_id"),
+                userId);
+
+        if (similarUserId == null) {
+            return Collections.emptyList();
+        }
+
+        String recommendedFilmsQuery = "SELECT f.*, mr.name AS mpa_name " +
+                "FROM films f " +
+                "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
+                "JOIN likes l ON f.film_id = l.film_id " +
+                "WHERE l.user_id = ? " +
+                "AND f.film_id NOT IN (" +
+                "   SELECT film_id FROM likes WHERE user_id = ?" +
+                ")";
+
+        return jdbcTemplate.query(recommendedFilmsQuery,
+                new FilmRowMapper(),
+                similarUserId,
+                userId);
+    }
+
+    private static class FilmRowMapper implements RowMapper<Film> {
+        @Override
+        public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return Film.builder()
+                    .id(rs.getInt("film_id"))
+                    .name(rs.getString("name"))
+                    .description(rs.getString("description"))
+                    .releaseDate(rs.getDate("release_date").toLocalDate())
+                    .duration(rs.getInt("duration"))
+                    .mpa(new MpaRating(
+                            rs.getInt("rating_id"),
+                            rs.getString("mpa_name")))
+                    .build();
+        }
     }
 
     private Map<String, Object> filmToMap(Film film) {
