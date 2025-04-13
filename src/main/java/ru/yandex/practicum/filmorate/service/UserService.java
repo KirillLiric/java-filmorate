@@ -3,7 +3,9 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import java.util.*;
@@ -75,6 +77,13 @@ public class UserService {
 
     public List<User> getCommonFriends(long userId, long otherId) {
         return userStorage.getCommonFriends(userId, otherId);
+    }
+
+    public List<Film> getRecommendedFilms(long userId) {
+        if (getUserById(userId) == null) {
+            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        return userStorage.getRecommendedFilms(userId);
     }
 
     public boolean isFriends(long userId, long friendId) {
