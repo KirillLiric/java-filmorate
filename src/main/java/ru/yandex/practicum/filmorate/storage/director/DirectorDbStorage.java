@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.SaveDataException;
 import ru.yandex.practicum.filmorate.model.Director;
 
@@ -38,7 +39,7 @@ public class DirectorDbStorage implements DirectorStorage {
         String sql = "UPDATE directors SET name = ? WHERE director_id = ?";
         int rowsUpdated = jdbcTemplate.update(sql, director.getName(), director.getId());
         if (rowsUpdated == 0) {
-            throw new SaveDataException("Не удалось обновить данные режиссера");
+            throw new NotFoundException("Режиссёр с ID " + director.getId() + " не найден");
         }
         return director;
     }
@@ -58,7 +59,7 @@ public class DirectorDbStorage implements DirectorStorage {
                     directorId
             );
         } catch (EmptyResultDataAccessException e) {
-            return null;
+            throw new NotFoundException("Режиссёр с ID " + directorId + " не найден");
         }
     }
 

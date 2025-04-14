@@ -29,6 +29,5 @@ public class Film {
     private Set<Long> likes = new HashSet<>();
     private MpaRating mpa;
     private List<Genre> genres = new ArrayList<>();
-    @NotNull(message = "Режиссер должен быть указан")
-    private Long directorsId;
+    private List<Director> directors = new ArrayList<>();
 }

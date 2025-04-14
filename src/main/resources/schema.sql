@@ -33,8 +33,7 @@ CREATE TABLE IF NOT EXISTS films (
     description VARCHAR(200),
     release_date DATE NOT NULL,
     duration INTEGER NOT NULL,
-    rating_id INTEGER REFERENCES mpa_rating(rating_id),
-    director_id BIGINT REFERENCES directors(director_id) ON DELETE SET NULL
+    rating_id INTEGER REFERENCES mpa_rating(rating_id)
 );
 
 -- Таблица связей фильмов и жанров (многие-ко-многим)
@@ -42,6 +41,13 @@ CREATE TABLE IF NOT EXISTS film_genres (
     film_id BIGINT REFERENCES films(film_id) ON DELETE CASCADE,
     genre_id INTEGER REFERENCES genres(genre_id) ON DELETE CASCADE,
     PRIMARY KEY (film_id, genre_id)
+);
+
+-- Таблица связей фильмов и режиссеров
+CREATE TABLE IF NOT EXISTS film_directors (
+    film_id BIGINT REFERENCES films(film_id) ON DELETE CASCADE,
+    director_id BIGINT REFERENCES directors(director_id) ON DELETE CASCADE,
+    PRIMARY KEY (film_id, director_id)
 );
 
 -- Таблица лайков фильмов
