@@ -112,47 +112,50 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<Film> getRecommendedFilms(long userId) {
 
-        if (!userExists(userId)) {
-            throw new UserNotFoundException("User with id " + userId + " not found");
+        String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
+                "FROM likes l1 " +
+                "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
+                "WHERE l1.user_id = ? " +
+                "GROUP BY l2.user_id " +
+                "ORDER BY common_likes DESC " +
+                "LIMIT 1";
+
+        Long similarUserId = jdbcTemplate.queryForObject(similarUsersQuery,
+                (rs, rowNum) -> rs.getLong("user_id"),
+                userId);
+
+        if (similarUserId == null) {
+            return Collections.emptyList();
         }
 
-        String recommendedFilmsSql = "SELECT f.*, mr.name AS mpa_name, " +
-                "COUNT(DISTINCT l.user_id) AS likes_count " +
+        String recommendedFilmsQuery = "SELECT f.*, mr.name AS mpa_name " +
                 "FROM films f " +
                 "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
-                "LEFT JOIN likes l ON f.film_id = l.film_id " +
-                "WHERE f.film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?) " +
-                "AND EXISTS ( " +
-                "   SELECT 1 FROM likes l1 " +
-                "   JOIN likes l2 ON l1.film_id = l2.film_id " +
-                "   WHERE l1.user_id = ? AND l2.user_id != ? " +
-                ") " +
-                "GROUP BY f.film_id " +
-                "ORDER BY likes_count DESC";
+                "JOIN likes l ON f.film_id = l.film_id " +
+                "WHERE l.user_id = ? " +
+                "AND f.film_id NOT IN (" +
+                "   SELECT film_id FROM likes WHERE user_id = ?" +
+                ")";
 
-        return jdbcTemplate.query(recommendedFilmsSql, new FilmRowMapper(), userId, userId, userId);
+        return jdbcTemplate.query(recommendedFilmsQuery,
+                new FilmRowMapper(),
+                similarUserId,
+                userId);
     }
 
     private static class FilmRowMapper implements RowMapper<Film> {
         @Override
         public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
-
-            Film film = Film.builder()
+            return Film.builder()
                     .id(rs.getInt("film_id"))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
                     .releaseDate(rs.getDate("release_date").toLocalDate())
                     .duration(rs.getInt("duration"))
+                    .mpa(new MpaRating(
+                            rs.getInt("rating_id"),
+                            rs.getString("mpa_name")))
                     .build();
-
-            if (rs.getObject("rating_id") != null) {
-                film.setMpa(new MpaRating(
-                        rs.getInt("rating_id"),
-                        rs.getString("mpa_name")
-                ));
-            }
-
-            return film;
         }
     }
 
