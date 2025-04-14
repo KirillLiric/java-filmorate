@@ -5,6 +5,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
@@ -26,6 +27,7 @@ public class ReviewDbStorage implements ReviewStorage {
     }
 
     @Override
+    @EventListen(eventType = "REVIEW", operation = "ADD", argIsEvent = true)
     public Review createReview(Review review) {
         boolean userExists = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users WHERE user_id = ?", Integer.class, review.getUserId()) > 0;
         boolean filmExists = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM films WHERE film_id = ?", Integer.class, review.getFilmId()) > 0;
@@ -43,6 +45,7 @@ public class ReviewDbStorage implements ReviewStorage {
     }
 
     @Override
+    @EventListen(eventType = "REVIEW", operation = "UPDATE", argIsEvent = true)
     public Review updateReview(Review review) {
         String sql = "UPDATE reviews SET " +
                 //"film_id = ?, " +
@@ -65,6 +68,7 @@ public class ReviewDbStorage implements ReviewStorage {
     }
 
     @Override
+    @EventListen(eventType = "REVIEW", operation = "REMOVE", entityIdArgIndex = 0)
     public boolean deleteReviewById(int id) {
         String sql = "DELETE FROM reviews WHERE review_id = ?";
 
@@ -136,7 +140,7 @@ public class ReviewDbStorage implements ReviewStorage {
         return Review.builder()
                 .reviewId(rs.getInt("review_id"))
                 .filmId(rs.getInt("film_id"))
-                .userId(rs.getInt("user_id"))
+                .userId(rs.getLong("user_id"))
                 .useful(rs.getInt("useful"))
                 .isPositive(rs.getBoolean("is_positive"))
                 .content(rs.getString("content"))
