@@ -29,4 +29,6 @@ public interface UserStorage {
 
     List<Film> getRecommendedFilms(long userId);
 
+    boolean userExists(long userId);
+
 }

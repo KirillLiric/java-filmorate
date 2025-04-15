@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.model.User;
@@ -111,6 +112,10 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<Film> getRecommendedFilms(long userId) {
 
+        if (!userExists(userId)) {
+            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+
         String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
                 "FROM likes l1 " +
                 "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
@@ -119,13 +124,15 @@ public class UserDbStorage implements UserStorage {
                 "ORDER BY common_likes DESC " +
                 "LIMIT 1";
 
-        Long similarUserId = jdbcTemplate.queryForObject(similarUsersQuery,
+        List<Long> similarUserIds = jdbcTemplate.query(similarUsersQuery,
                 (rs, rowNum) -> rs.getLong("user_id"),
                 userId);
 
-        if (similarUserId == null) {
+        if (similarUserIds == null) {
             return Collections.emptyList();
         }
+
+        Long similarUserId = similarUserIds.get(0);
 
         String recommendedFilmsQuery = "SELECT f.*, mr.name AS mpa_name " +
                 "FROM films f " +
@@ -158,7 +165,8 @@ public class UserDbStorage implements UserStorage {
         }
     }
 
-    private boolean userExists(long userId) {
+    @Override
+    public boolean userExists(long userId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM users WHERE user_id = ?",
                 Integer.class,

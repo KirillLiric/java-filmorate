@@ -83,12 +83,16 @@ public class UserService {
 
     public List<Film> getRecommendedFilms(long userId) {
         try {
+            if (!userStorage.userExists(userId)) {
+                throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+            }
+
             List<Film> recommendations = userStorage.getRecommendedFilms(userId);
-            return recommendations != null ? recommendations : Collections.emptyList();
+            return recommendations == null ? Collections.emptyList() : recommendations;
         } catch (UserNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Ошибка в рекомендациях");
+            return Collections.emptyList();
         }
     }
 
