@@ -31,8 +31,9 @@ public class FeedDbStorage implements FeedStorage {
         if (user == null) {
             throw new UserNotFoundException("Пользователь с ID " + userId + " не найден.");
         }
-        String sgl = "SELECT * FROM feed WHERE user_id = ? ORDER BY time_stamp DESC";
-        return jdbcTemplate.query(sgl, this::mapRowToFeed, userId);
+        String sql = "SELECT * FROM feed " +
+                "WHERE user_id = ? ORDER BY time_stamp";
+        return jdbcTemplate.query(sql, this::mapRowToFeed, userId);
     }
 
     @Async

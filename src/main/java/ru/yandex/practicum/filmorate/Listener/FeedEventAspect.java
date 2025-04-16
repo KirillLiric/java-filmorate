@@ -34,7 +34,7 @@ public class FeedEventAspect {
         Object result;
 
         if (eventType.equals("REVIEW") && operation.equals("REMOVE")) {
-            entityId = ((Integer) args[el.entityIdArgIndex()]).longValue();
+            entityId = ((Number) args[el.entityIdArgIndex()]).longValue();
             Review review = reviewStorage.getReviewById((int) entityId);
             userId = review.getUserId();
             result = joinPoint.proceed();
@@ -45,8 +45,8 @@ public class FeedEventAspect {
             result = joinPoint.proceed();
 
             if (!el.argIsEvent()) {
-                userId = (long) args[el.userIdArgIndex()];
-                entityId = (long) args[el.entityIdArgIndex()];
+                userId = ((Number) args[el.userIdArgIndex()]).longValue();
+                entityId = ((Number) args[el.entityIdArgIndex()]).longValue();
             } else {
                 Event event = (Event) result;
                 userId = event.getUserId();
