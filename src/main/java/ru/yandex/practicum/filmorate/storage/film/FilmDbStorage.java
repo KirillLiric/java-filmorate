@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -65,9 +66,12 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    @Transactional
     public boolean deleteFilmById(int id) {
-        String sql = "DELETE FROM films WHERE film_id = ?";
-        return jdbcTemplate.update(sql, id) > 0;
+        Film film = getFilmById(id);
+        jdbcTemplate.update("DELETE FROM film_genres WHERE film_id = ?", id);
+        jdbcTemplate.update("DELETE FROM likes WHERE film_id = ?", id);
+        return jdbcTemplate.update("DELETE FROM films WHERE film_id = ?", id) > 0;
     }
 
     @Override

@@ -30,6 +30,10 @@ public class UserService {
         return userStorage.update(user);
     }
 
+    public void deleteUser(long id) {
+        userStorage.delete(id);
+    }
+
     public Collection<User> getAllUsers() {
         return userStorage.getAll();
     }
@@ -77,7 +81,7 @@ public class UserService {
         return userStorage.getCommonFriends(userId, otherId);
     }
 
-    public boolean isFriends(long userId, long friendId) {
+     public boolean isFriends(long userId, long friendId) {
         return userStorage.isFriends(userId, friendId);
     }
 }
