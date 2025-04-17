@@ -201,6 +201,7 @@ public class FilmDbStorage implements FilmStorage {
 
     private Film mapRowToFilm(ResultSet rs, int rowNum) throws SQLException {
         int filmId = rs.getInt("film_id");
+        List<Director> directors = getDirectorForFilm(filmId);
 
         return Film.builder()
                 .id(filmId)
@@ -212,7 +213,8 @@ public class FilmDbStorage implements FilmStorage {
                         rs.getInt("rating_id"),
                         rs.getString("mpa_name")))
                 .likes(getLikesForFilm(filmId))
-                .genres(getOrderedGenresForFilm(filmId)) // Упорядоченные жанры
+                .genres(getOrderedGenresForFilm(filmId))
+                .directors(directors != null ? directors : new ArrayList<>())
                 .build();
     }
 
@@ -303,15 +305,6 @@ public class FilmDbStorage implements FilmStorage {
                     "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)",
                     batchArgs);
         }
-    }
-
-    @Override
-    public Collection<Film> getDirectorFilms(Long directorId) {
-        String sql = "SELECT f.*, mr.name AS mpa_name FROM film_directors fd " +
-                "JOIN films f ON fd.film_id = f.film_id " +
-                "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
-                "WHERE fd.director_id = ?";
-        return jdbcTemplate.query(sql, this::mapRowToFilm, directorId);
     }
 
     @Override

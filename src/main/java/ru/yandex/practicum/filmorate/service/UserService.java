@@ -90,7 +90,6 @@ public class UserService {
             if (!userStorage.userExists(userId)) {
                 throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
             }
-
             List<Film> recommendations = userStorage.getRecommendedFilms(userId);
             return recommendations == null ? Collections.emptyList() : recommendations;
         } catch (UserNotFoundException e) {

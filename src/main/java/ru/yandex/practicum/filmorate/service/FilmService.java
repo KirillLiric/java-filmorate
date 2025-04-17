@@ -2,11 +2,10 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exceptions.InvalidRequestException;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.exceptions.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
@@ -21,15 +20,18 @@ public class FilmService {
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
     private final UserStorage userStorage;
+    private final DirectorStorage directorStorage;
 
     public FilmService(@Qualifier("FilmDbStorage") FilmStorage filmStorage,
                        @Qualifier("MpaDbStorage") MpaStorage mpaStorage,
                        @Qualifier("GenreDbStorage") GenreStorage genreStorage,
-                       @Qualifier("UserDbStorage") UserStorage userStorage) {
+                       @Qualifier("UserDbStorage") UserStorage userStorage,
+                       @Qualifier("DirectorDbStorage") DirectorStorage directorStorage) {
         this.filmStorage = filmStorage;
         this.mpaStorage = mpaStorage;
         this.genreStorage = genreStorage;
         this.userStorage = userStorage;
+        this.directorStorage = directorStorage;
     }
 
     public Film createFilm(Film film) {
@@ -71,10 +73,22 @@ public class FilmService {
     }
 
     public Film addLike(int filmId, long userId) {
+        if (filmStorage.getFilmById(filmId) == null) {
+            throw new FilmNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        if (userStorage.getById(userId) == null) {
+            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+        }
         return filmStorage.addLike(filmId, userId);
     }
 
     public Film removeLike(int filmId, long userId) {
+        if (filmStorage.getFilmById(filmId) == null) {
+            throw new FilmNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        if (userStorage.getById(userId) == null) {
+            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+        }
         return filmStorage.removeLike(filmId, userId);
     }
 
@@ -100,6 +114,9 @@ public class FilmService {
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortConditions) {
+        if (directorStorage.getDirectorById(directorId) == null) {
+            throw new NotFoundException("Режиссер с id " + directorId + " не найден");
+        }
         List<Film> films;
         if (sortConditions.equals("year")) {
             films = filmStorage.getDirectorFilmsOrderYear(directorId);

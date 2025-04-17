@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.service.DirectorService;
 
@@ -37,7 +38,11 @@ public class DirectorController {
     }
 
     @DeleteMapping("/{id}")
-    public boolean delete(@PathVariable("id") Long directorId) {
-        return directorService.delete(directorId);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        boolean deleted = directorService.delete(id);
+        if (!deleted) {
+            throw new NotFoundException("Режиссер с ID " + id + " не найден");
+        }
     }
 }
