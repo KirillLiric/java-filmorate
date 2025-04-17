@@ -3,8 +3,12 @@ package ru.yandex.practicum.filmorate.storage.user;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -108,6 +112,72 @@ public class UserDbStorage implements UserStorage {
                 "JOIN friendships f2 ON u.user_id = f2.friend_id " +
                 "WHERE f1.user_id = ? AND f2.user_id = ?";
         return jdbcTemplate.query(sql, this::mapRowToUser, userId, otherId);
+    }
+
+    @Override
+    public List<Film> getRecommendedFilms(long userId) {
+
+        if (!userExists(userId)) {
+            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+
+        String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
+                "FROM likes l1 " +
+                "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
+                "WHERE l1.user_id = ? " +
+                "GROUP BY l2.user_id " +
+                "ORDER BY common_likes DESC " +
+                "LIMIT 1";
+
+        List<Long> similarUserIds = jdbcTemplate.query(similarUsersQuery,
+                (rs, rowNum) -> rs.getLong("user_id"),
+                userId);
+
+        if (similarUserIds == null) {
+            return Collections.emptyList();
+        }
+
+        Long similarUserId = similarUserIds.get(0);
+
+        String recommendedFilmsQuery = "SELECT f.*, mr.name AS mpa_name " +
+                "FROM films f " +
+                "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
+                "JOIN likes l ON f.film_id = l.film_id " +
+                "WHERE l.user_id = ? " +
+                "AND f.film_id NOT IN (" +
+                "   SELECT film_id FROM likes WHERE user_id = ?" +
+                ")";
+
+        return jdbcTemplate.query(recommendedFilmsQuery,
+                new FilmRowMapper(),
+                similarUserId,
+                userId);
+    }
+
+    private static class FilmRowMapper implements RowMapper<Film> {
+        @Override
+        public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return Film.builder()
+                    .id(rs.getInt("film_id"))
+                    .name(rs.getString("name"))
+                    .description(rs.getString("description"))
+                    .releaseDate(rs.getDate("release_date").toLocalDate())
+                    .duration(rs.getInt("duration"))
+                    .mpa(new MpaRating(
+                            rs.getInt("rating_id"),
+                            rs.getString("mpa_name")))
+                    .build();
+        }
+    }
+
+    @Override
+    public boolean userExists(long userId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE user_id = ?",
+                Integer.class,
+                userId
+        );
+        return count != null && count > 0;
     }
 
     private Map<String, Object> userToMap(User user) {

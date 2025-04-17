@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import jakarta.validation.Valid;
@@ -62,6 +63,11 @@ public class UserController {
             throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
         return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public List<Film> getRecommendedFilms(@PathVariable long id) {
+        return userService.getRecommendedFilms(id);
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")

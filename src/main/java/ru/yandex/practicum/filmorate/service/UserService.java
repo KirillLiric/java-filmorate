@@ -1,9 +1,13 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import java.util.*;
@@ -81,7 +85,22 @@ public class UserService {
         return userStorage.getCommonFriends(userId, otherId);
     }
 
-     public boolean isFriends(long userId, long friendId) {
+    public List<Film> getRecommendedFilms(long userId) {
+        try {
+            if (!userStorage.userExists(userId)) {
+                throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+            }
+
+            List<Film> recommendations = userStorage.getRecommendedFilms(userId);
+            return recommendations == null ? Collections.emptyList() : recommendations;
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    public boolean isFriends(long userId, long friendId) {
         return userStorage.isFriends(userId, friendId);
     }
 }
