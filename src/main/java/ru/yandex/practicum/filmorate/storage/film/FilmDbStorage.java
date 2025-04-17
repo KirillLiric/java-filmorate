@@ -83,8 +83,16 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     @EventListen(eventType = "LIKE", operation = "ADD", userIdArgIndex = 1, entityIdArgIndex = 0)
     public Film addLike(int filmId, long userId) {
-        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
-        jdbcTemplate.update(sql, filmId, userId);
+        boolean likeExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?",
+                Integer.class,
+                filmId,
+                userId
+        ) > 0;
+
+        if (!likeExists) {
+            jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", filmId, userId);
+        }
         return getFilmById(filmId);
     }
 

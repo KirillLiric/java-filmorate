@@ -8,11 +8,14 @@ import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.model.User;
+
+import java.security.cert.CertPathBuilder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -157,10 +160,10 @@ public class UserDbStorage implements UserStorage {
                 userId);
     }
 
-    private static class FilmRowMapper implements RowMapper<Film> {
+    public class FilmRowMapper implements RowMapper<Film> {
         @Override
         public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return Film.builder()
+            Film film = Film.builder()
                     .id(rs.getInt("film_id"))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
@@ -168,11 +171,20 @@ public class UserDbStorage implements UserStorage {
                     .duration(rs.getInt("duration"))
                     .mpa(new MpaRating(
                             rs.getInt("rating_id"),
-                            rs.getString("mpa_name")))
+                            rs.getString("mpa_name")
+                    ))
                     .build();
+//
+//            if (rs.getInt("genre_id") > 0) {
+//                film.getGenres().add(new Genre(
+//                        rs.getInt("genre_id"),
+//                        rs.getString("genre_name")
+//                ));
+//            }
+              return film;
         }
     }
-
+    
     @Override
     public boolean userExists(long userId) {
         Integer count = jdbcTemplate.queryForObject(
