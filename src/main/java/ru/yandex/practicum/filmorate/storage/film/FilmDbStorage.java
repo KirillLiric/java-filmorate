@@ -335,4 +335,48 @@ public class FilmDbStorage implements FilmStorage {
                 "ORDER BY likes_count DESC";
         return jdbcTemplate.query(sql, this::mapRowToFilm, directorId);
     }
+
+    @Override
+    public List<Film> searchFilms(String query, boolean byTitle, boolean byDirector) {
+        String lowerQuery = "%" + query.toLowerCase() + "%";
+        List<Object> params = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.*, mr.name AS mpa_name, COUNT(l.user_id) AS popularity " +
+                        "FROM films f " +
+                        "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
+                        "LEFT JOIN likes l ON f.film_id = l.film_id "
+        );
+
+        if (byDirector) {
+            sql.append(
+                    "LEFT JOIN film_directors fd ON f.film_id = fd.film_id " +
+                            "LEFT JOIN directors d ON fd.director_id = d.director_id "
+            );
+        }
+
+        sql.append("WHERE ");
+
+        if (byTitle && byDirector) {
+            sql.append("(LOWER(f.name) LIKE ? OR LOWER(d.name) LIKE ?) ");
+            params.add(lowerQuery);
+            params.add(lowerQuery);
+        } else if (byTitle) {
+            sql.append("LOWER(f.name) LIKE ? ");
+            params.add(lowerQuery);
+        } else if (byDirector) {
+            sql.append("LOWER(d.name) LIKE ? ");
+            params.add(lowerQuery);
+        } else {
+            sql.append("LOWER(f.name) LIKE ? ");
+            params.add(lowerQuery);
+        }
+
+        sql.append(
+                "GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.rating_id, mr.name " +
+                        "ORDER BY popularity DESC"
+        );
+
+        String finalSql = sql.toString();
+        return jdbcTemplate.query(finalSql, this::mapRowToFilm, params.toArray());
+    }
 }
