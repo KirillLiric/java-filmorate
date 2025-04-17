@@ -93,6 +93,20 @@ public class FilmDbStorage implements FilmStorage {
         return jdbcTemplate.query(sql, this::mapRowToFilm, count);
     }
 
+    @Override
+    public List<Film> getCommonFilms(long userId, long friendId) {
+        String sql = "SELECT f.*, mr.name AS mpa_name " +
+                "FROM films f " +
+                "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
+                "JOIN likes l1 ON f.film_id = l1.film_id AND l1.user_id = ? " +
+                "JOIN likes l2 ON f.film_id = l2.film_id AND l2.user_id = ? " +
+                "LEFT JOIN likes l ON f.film_id = l.film_id " +
+                "GROUP BY f.film_id " +
+                "ORDER BY COUNT(l.user_id) DESC";
+
+        return jdbcTemplate.query(sql, this::mapRowToFilm, userId, friendId);
+    }
+
     private Map<String, Object> filmToMap(Film film) {
         Map<String, Object> values = new HashMap<>();
         values.put("name", film.getName());
@@ -163,7 +177,6 @@ public class FilmDbStorage implements FilmStorage {
             );
         }
     }
-
 
     private void updateFilmLikes(int filmId, Set<Long> likes) {
         jdbcTemplate.update("DELETE FROM likes WHERE film_id = ?", filmId);
