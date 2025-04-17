@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.model.User;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -82,6 +83,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    @EventListen(eventType = "FRIEND", operation = "ADD")
     public User addFriend(long userId, long friendId) {
         String sql = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, userId, friendId);
@@ -89,6 +91,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    @EventListen(eventType = "FRIEND", operation = "REMOVE")
     public User removeFriend(long userId, long friendId) {
         String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
         jdbcTemplate.update(sql, userId, friendId);

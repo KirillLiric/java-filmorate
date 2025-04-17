@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -80,6 +81,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    @EventListen(eventType = "LIKE", operation = "ADD", userIdArgIndex = 1, entityIdArgIndex = 0)
     public Film addLike(int filmId, long userId) {
         String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, filmId, userId);
@@ -87,6 +89,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    @EventListen(eventType = "LIKE", operation = "REMOVE", userIdArgIndex = 1, entityIdArgIndex = 0)
     public Film removeLike(int filmId, long userId) {
         String sql = "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
         jdbcTemplate.update(sql, filmId, userId);
@@ -210,7 +213,6 @@ public class FilmDbStorage implements FilmStorage {
                         rs.getString("mpa_name")))
                 .likes(getLikesForFilm(filmId))
                 .genres(getOrderedGenresForFilm(filmId)) // Упорядоченные жанры
-                .directors(getDirectorForFilm(filmId))
                 .build();
     }
 

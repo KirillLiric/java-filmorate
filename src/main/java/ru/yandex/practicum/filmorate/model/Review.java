@@ -8,7 +8,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class Review {
+public class Review implements Event {
     private int reviewId;
     @NotBlank(message = "Отзыв не может быть пустым")
     private String content;
@@ -19,5 +19,15 @@ public class Review {
     @NotNull(message = "Необходимо указать, является ли отзыв положительным")
     private Boolean isPositive;
     @NotNull(message = "Необходимо указать id пользователя")
-    private Integer userId;
+    private Long userId;
+
+    @Override
+    public long getEntityId() {
+        return reviewId;
+    }
+
+    @Override
+    public long getUserId() {
+        return userId;
+    }
 }

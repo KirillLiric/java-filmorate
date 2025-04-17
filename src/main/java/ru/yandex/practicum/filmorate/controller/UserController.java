@@ -1,21 +1,30 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.FeedEvent;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import jakarta.validation.Valid;
+import ru.yandex.practicum.filmorate.storage.feed.FeedStorage;
+
 import java.util.Collection;
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
-@RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final FeedStorage feedStorage;
+
+    public UserController(@Qualifier("FeedDbStorage") FeedStorage feedStorage,
+                          UserService userService) {
+        this.feedStorage = feedStorage;
+        this.userService = userService;
+    }
 
     @GetMapping
     public Collection<User> getAllUsers() {
@@ -73,5 +82,10 @@ public class UserController {
     @GetMapping("/{id}/friends/common/{otherId}")
     public List<User> getCommonFriends(@PathVariable long id, @PathVariable long otherId) {
         return userService.getCommonFriends(id, otherId);
+    }
+
+    @GetMapping("/{id}/feed")
+    public List<FeedEvent> getUserFeed(@PathVariable int id) {
+        return feedStorage.getUserFeed(id);
     }
 }
