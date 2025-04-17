@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import jakarta.validation.Valid;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -64,5 +65,11 @@ public class FilmController {
             @RequestParam(required = false) Integer genreId,
             @RequestParam(required = false) Integer year) {
         return filmService.getPopularFilms(count, genreId, year);
+    }
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getFilmsByDirector(@PathVariable("directorId") Long directorId,
+                                      @RequestParam(name = "sortBy", defaultValue = "") String sortConditions) {
+        return filmService.getFilmsByDirector(directorId, sortConditions);
     }
 }
