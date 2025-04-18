@@ -3,19 +3,16 @@ package ru.yandex.practicum.filmorate.storage.user;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.MpaRating;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
-import java.security.cert.CertPathBuilder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -25,9 +22,11 @@ import java.util.stream.Collectors;
 @Qualifier("UserDbStorage")
 public class UserDbStorage implements UserStorage {
     private final JdbcTemplate jdbcTemplate;
+    private final FilmStorage filmStorage;
 
-    public UserDbStorage(JdbcTemplate jdbcTemplate) {
+    public UserDbStorage(JdbcTemplate jdbcTemplate, @Qualifier("FilmDbStorage") FilmStorage filmStorage) {
         this.jdbcTemplate = jdbcTemplate;
+        this.filmStorage = filmStorage;
     }
 
     @Override
@@ -145,46 +144,19 @@ public class UserDbStorage implements UserStorage {
 
         Long similarUserId = similarUserIds.get(0);
 
-        String recommendedFilmsQuery = "SELECT f.*, mr.name AS mpa_name " +
-                "FROM films f " +
-                "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
-                "JOIN likes l ON f.film_id = l.film_id " +
-                "WHERE l.user_id = ? " +
-                "AND f.film_id NOT IN (" +
-                "   SELECT film_id FROM likes WHERE user_id = ?" +
-                ")";
+        String recFilmsSql =
+                "SELECT film_id FROM likes " +
+                        "WHERE user_id = ? " +
+                        "  AND film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?)";
+        List<Integer> filmIds = jdbcTemplate.queryForList(recFilmsSql, Integer.class,
+                similarUserId, userId);
 
-        return jdbcTemplate.query(recommendedFilmsQuery,
-                new FilmRowMapper(),
-                similarUserId,
-                userId);
+        return filmIds.stream()
+                .map(filmStorage::getFilmById)
+                .collect(Collectors.toList());
     }
 
-    public class FilmRowMapper implements RowMapper<Film> {
-        @Override
-        public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
-            Film film = Film.builder()
-                    .id(rs.getInt("film_id"))
-                    .name(rs.getString("name"))
-                    .description(rs.getString("description"))
-                    .releaseDate(rs.getDate("release_date").toLocalDate())
-                    .duration(rs.getInt("duration"))
-                    .mpa(new MpaRating(
-                            rs.getInt("rating_id"),
-                            rs.getString("mpa_name")
-                    ))
-                    .build();
-//
-//            if (rs.getInt("genre_id") > 0) {
-//                film.getGenres().add(new Genre(
-//                        rs.getInt("genre_id"),
-//                        rs.getString("genre_name")
-//                ));
-//            }
-              return film;
-        }
-    }
-    
+
     @Override
     public boolean userExists(long userId) {
         Integer count = jdbcTemplate.queryForObject(

@@ -156,7 +156,7 @@ public class FilmDbStorage implements FilmStorage {
                 "WHERE l1.user_id = ? " +
                 "GROUP BY l2.user_id " +
                 "ORDER BY common_likes DESC " +
-                "LIMIT 3";
+                "LIMIT 1";
 
         Long similarUserId = jdbcTemplate.queryForObject(similarUsersQuery,
                 (rs, rowNum) -> rs.getLong("user_id"),
@@ -181,9 +181,11 @@ public class FilmDbStorage implements FilmStorage {
                 userId);
     }
 
-    private static class FilmRowMapper implements RowMapper<Film> {
+    private class FilmRowMapper implements RowMapper<Film> {
         @Override
         public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
+            int filmId = rs.getInt("film_id");
+            List<Director> directors = getDirectorForFilm(filmId);
             return Film.builder()
                     .id(rs.getInt("film_id"))
                     .name(rs.getString("name"))
@@ -193,6 +195,9 @@ public class FilmDbStorage implements FilmStorage {
                     .mpa(new MpaRating(
                             rs.getInt("rating_id"),
                             rs.getString("mpa_name")))
+                    .likes(getLikesForFilm(filmId))
+                    .genres(getOrderedGenresForFilm(filmId))
+                    .directors(directors != null ? directors : new ArrayList<>())
                     .build();
         }
     }
