@@ -5,7 +5,14 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
+import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -15,9 +22,11 @@ import java.util.stream.Collectors;
 @Qualifier("UserDbStorage")
 public class UserDbStorage implements UserStorage {
     private final JdbcTemplate jdbcTemplate;
+    private final FilmStorage filmStorage;
 
-    public UserDbStorage(JdbcTemplate jdbcTemplate) {
+    public UserDbStorage(JdbcTemplate jdbcTemplate, @Qualifier("FilmDbStorage") FilmStorage filmStorage) {
         this.jdbcTemplate = jdbcTemplate;
+        this.filmStorage = filmStorage;
     }
 
     @Override
@@ -29,7 +38,7 @@ public class UserDbStorage implements UserStorage {
                     id
             );
         } catch (EmptyResultDataAccessException e) {
-            return null;
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
     }
 
@@ -67,12 +76,16 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    @Transactional
     public boolean delete(long id) {
-        String sql = "DELETE FROM users WHERE user_id = ?";
-        return jdbcTemplate.update(sql, id) > 0;
+        User user = getById(id);
+        jdbcTemplate.update("DELETE FROM friendships WHERE user_id = ? OR friend_id = ?", id, id);
+        jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id);
+        return jdbcTemplate.update("DELETE FROM users WHERE user_id = ?", id) > 0;
     }
 
     @Override
+    @EventListen(eventType = "FRIEND", operation = "ADD")
     public User addFriend(long userId, long friendId) {
         String sql = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, userId, friendId);
@@ -80,6 +93,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    @EventListen(eventType = "FRIEND", operation = "REMOVE")
     public User removeFriend(long userId, long friendId) {
         String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
         jdbcTemplate.update(sql, userId, friendId);
@@ -103,6 +117,54 @@ public class UserDbStorage implements UserStorage {
                 "JOIN friendships f2 ON u.user_id = f2.friend_id " +
                 "WHERE f1.user_id = ? AND f2.user_id = ?";
         return jdbcTemplate.query(sql, this::mapRowToUser, userId, otherId);
+    }
+
+    @Override
+    public List<Film> getRecommendedFilms(long userId) {
+
+        if (!userExists(userId)) {
+            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+        }
+
+        String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
+                "FROM likes l1 " +
+                "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
+                "WHERE l1.user_id = ? " +
+                "GROUP BY l2.user_id " +
+                "ORDER BY common_likes DESC " +
+                "LIMIT 1";
+
+        List<Long> similarUserIds = jdbcTemplate.query(similarUsersQuery,
+                (rs, rowNum) -> rs.getLong("user_id"),
+                userId);
+
+        if (similarUserIds == null) {
+            return Collections.emptyList();
+        }
+
+        Long similarUserId = similarUserIds.get(0);
+
+        String recFilmsSql =
+                "SELECT film_id FROM likes " +
+                        "WHERE user_id = ? " +
+                        "  AND film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?)";
+        List<Integer> filmIds = jdbcTemplate.queryForList(recFilmsSql, Integer.class,
+                similarUserId, userId);
+
+        return filmIds.stream()
+                .map(filmStorage::getFilmById)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public boolean userExists(long userId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE user_id = ?",
+                Integer.class,
+                userId
+        );
+        return count != null && count > 0;
     }
 
     private Map<String, Object> userToMap(User user) {
@@ -155,4 +217,5 @@ public class UserDbStorage implements UserStorage {
         );
         return count != null && count > 0;
     }
+
 }
