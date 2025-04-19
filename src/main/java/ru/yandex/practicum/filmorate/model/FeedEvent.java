@@ -8,10 +8,10 @@ import lombok.EqualsAndHashCode;
 @Data
 @Builder
 public class FeedEvent {
-    int eventId;
-    long userId;
-    String eventType;
-    String operation;
-    long entityId;
-    long timestamp;
+    private int eventId;
+    private long userId;
+    private String eventType;
+    private String operation;
+    private long entityId;
+    private long timestamp;
 }

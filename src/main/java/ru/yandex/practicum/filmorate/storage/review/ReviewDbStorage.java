@@ -14,8 +14,10 @@ import ru.yandex.practicum.filmorate.model.Review;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+
+import static ru.yandex.practicum.filmorate.storage.RowMappers.REVIEW_ROW_MAPPER;
+import static ru.yandex.practicum.filmorate.storage.RowMappers.toReviewMap;
 
 @Repository
 @Qualifier("ReviewDbStorage")
@@ -48,17 +50,11 @@ public class ReviewDbStorage implements ReviewStorage {
     @EventListen(eventType = "REVIEW", operation = "UPDATE", argIsEvent = true)
     public Review updateReview(Review review) {
         String sql = "UPDATE reviews SET " +
-                //"film_id = ?, " +
-                //"user_id = ?, " +
-                //"useful = ?, " +
                 "is_positive = ?, " +
                 "content = ? " +
                 "WHERE review_id = ?";
 
         jdbcTemplate.update(sql,
-                //review.getFilmId(),
-                //review.getUserId(),
-                //review.getUseful(),
                 review.getIsPositive(),
                 review.getContent(),
                 review.getReviewId()
@@ -137,24 +133,11 @@ public class ReviewDbStorage implements ReviewStorage {
     }
 
     private Review mapRowToReview(ResultSet rs, int rowNum) throws SQLException {
-        return Review.builder()
-                .reviewId(rs.getInt("review_id"))
-                .filmId(rs.getInt("film_id"))
-                .userId(rs.getLong("user_id"))
-                .useful(rs.getInt("useful"))
-                .isPositive(rs.getBoolean("is_positive"))
-                .content(rs.getString("content"))
-                .build();
+        return REVIEW_ROW_MAPPER.mapRow(rs, rowNum);
     }
 
     private Map<String, Object> reviewToMap(Review rw) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("user_id", rw.getUserId());
-        values.put("film_id", rw.getFilmId());
-        values.put("useful", rw.getUseful());
-        values.put("is_positive", rw.getIsPositive());
-        values.put("content", rw.getContent());
-        return values;
+        return toReviewMap(rw);
     }
 
     private void addEstimation(int reviewId, int userId, boolean isLike, int count) {

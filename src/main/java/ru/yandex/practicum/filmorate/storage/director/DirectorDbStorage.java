@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
@@ -15,15 +14,15 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.Collection;
 
+import static ru.yandex.practicum.filmorate.storage.RowMappers.DIRECTOR_ROW_MAPPER;
+
 @Repository
 @Qualifier("DirectorDbStorage")
 public class DirectorDbStorage implements DirectorStorage {
     private final JdbcTemplate jdbcTemplate;
-    private final RowMapper<Director> directorRowMapper;
 
-    public DirectorDbStorage(JdbcTemplate jdbcTemplate, DirectorRowMapper directorRowMapper) {
+    public DirectorDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.directorRowMapper = directorRowMapper;
     }
 
     @Override
@@ -47,7 +46,7 @@ public class DirectorDbStorage implements DirectorStorage {
     @Override
     public Collection<Director> getAllDirectors() {
         String sql = "SELECT * FROM directors";
-        return jdbcTemplate.query(sql, directorRowMapper);
+        return jdbcTemplate.query(sql, DIRECTOR_ROW_MAPPER);
     }
 
     @Override
@@ -55,7 +54,7 @@ public class DirectorDbStorage implements DirectorStorage {
         try {
             return jdbcTemplate.queryForObject(
                     "SELECT * FROM directors WHERE director_id = ?",
-                    directorRowMapper,
+                    DIRECTOR_ROW_MAPPER,
                     directorId
             );
         } catch (EmptyResultDataAccessException e) {
@@ -87,7 +86,6 @@ public class DirectorDbStorage implements DirectorStorage {
 
         Long id = keyHolder.getKeyAs(Long.class);
 
-        // Возвращаем id нового пользователя
         if (id != null) {
             return id;
         } else {

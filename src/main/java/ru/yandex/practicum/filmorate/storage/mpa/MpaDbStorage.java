@@ -5,9 +5,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.RatingNotFoundException;
 import ru.yandex.practicum.filmorate.model.MpaRating;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+
 import java.util.Collection;
+
+import static ru.yandex.practicum.filmorate.storage.RowMappers.MPA_ROW_MAPPER;
 
 @Repository
 @Qualifier("MpaDbStorage")
@@ -21,13 +22,13 @@ public class MpaDbStorage implements MpaStorage {
     @Override
     public Collection<MpaRating> getAllRatings() {
         String sql = "SELECT * FROM mpa_rating ORDER BY rating_id";
-        return jdbcTemplate.query(sql, this::mapRowToMpa);
+        return jdbcTemplate.query(sql, MPA_ROW_MAPPER);
     }
 
     @Override
     public MpaRating getMpaById(Integer id) {
         String sql = "SELECT * FROM mpa_rating WHERE rating_id = ?";
-        return jdbcTemplate.query(sql, this::mapRowToMpa, id)
+        return jdbcTemplate.query(sql, MPA_ROW_MAPPER, id)
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new RatingNotFoundException("Рейтинг MPA с id " + id + " не найден"));
@@ -41,12 +42,5 @@ public class MpaDbStorage implements MpaStorage {
             throw new RatingNotFoundException("Рейтинг MPA с id " + id + " не найден");
         }
         return true;
-    }
-
-    private MpaRating mapRowToMpa(ResultSet rs, int rowNum) throws SQLException {
-        return MpaRating.builder()
-                .id(rs.getInt("rating_id"))
-                .name(rs.getString("name"))
-                .build();
     }
 }

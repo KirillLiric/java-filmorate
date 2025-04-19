@@ -57,11 +57,4 @@ public class ErrorHandler {
         log.error("Внутренняя ошибка сервера", e);
         return new ErrorResponse("Произошла непредвиденная ошибка: " + e.getMessage());
     }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleSaveDataException(SaveDataException s) {
-        log.error("Внутренняя ошибка сервера", s);
-        return new ErrorResponse("Произошла непредвиденная ошибка: " + s.getMessage());
-    }
 }

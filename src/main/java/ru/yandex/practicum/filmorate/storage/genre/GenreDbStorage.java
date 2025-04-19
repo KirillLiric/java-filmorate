@@ -5,9 +5,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.GenreNotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+
 import java.util.Collection;
+
+import static ru.yandex.practicum.filmorate.storage.RowMappers.GENRE_ROW_MAPPER;
 
 @Repository
 @Qualifier("GenreDbStorage")
@@ -21,13 +22,13 @@ public class GenreDbStorage implements GenreStorage {
     @Override
     public Collection<Genre> getAll() {
         String sql = "SELECT * FROM genres ORDER BY genre_id";
-        return jdbcTemplate.query(sql, this::mapRowToGenre);
+        return jdbcTemplate.query(sql, GENRE_ROW_MAPPER);
     }
 
     @Override
     public Genre getById(int id) {
         String sql = "SELECT * FROM genres WHERE genre_id = ?";
-        return jdbcTemplate.query(sql, this::mapRowToGenre, id)
+        return jdbcTemplate.query(sql, GENRE_ROW_MAPPER, id)
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new GenreNotFoundException("Жанр с id " + id + " не найден"));
@@ -41,12 +42,5 @@ public class GenreDbStorage implements GenreStorage {
             throw new GenreNotFoundException("Жанр с id " + id + " не найден");
         }
         return true;
-    }
-
-    private Genre mapRowToGenre(ResultSet rs, int rowNum) throws SQLException {
-        return Genre.builder()
-                .id(rs.getInt("genre_id"))
-                .name(rs.getString("name"))
-                .build();
     }
 }

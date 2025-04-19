@@ -1,15 +1,14 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.FeedEvent;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FeedService;
 import ru.yandex.practicum.filmorate.service.UserService;
 import jakarta.validation.Valid;
-import ru.yandex.practicum.filmorate.storage.feed.FeedStorage;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,11 +17,10 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
-    private final FeedStorage feedStorage;
+    private final FeedService feedService;
 
-    public UserController(@Qualifier("FeedDbStorage") FeedStorage feedStorage,
-                          UserService userService) {
-        this.feedStorage = feedStorage;
+    public UserController(UserService userService, FeedService feedService1) {
+        this.feedService = feedService1;
         this.userService = userService;
     }
 
@@ -34,7 +32,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable long id) {
-      userService.deleteUser(id);
+        userService.deleteUser(id);
     }
 
     @GetMapping("/{id}")
@@ -85,7 +83,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}/feed")
-    public List<FeedEvent> getUserFeed(@PathVariable int id) {
-        return feedStorage.getUserFeed(id);
+    public List<FeedEvent> getUserFeed(@PathVariable long id) {
+        return feedService.getUserFeed(id);
     }
 }

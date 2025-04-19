@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.storage.film;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,12 +10,13 @@ import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.MpaRating;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static ru.yandex.practicum.filmorate.storage.RowMappers.*;
 
 @Repository
 @Qualifier("FilmDbStorage")
@@ -148,6 +148,26 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public List<Film> getFilmsByIds(List<Integer> ids) {
+        if (ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String placeholders = ids.stream().map(i -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT f.*, mr.name AS mpa_name " +
+                "FROM films f " +
+                "JOIN mpa_rating mr ON f.rating_id = mr.rating_id " +
+                "WHERE f.film_id IN (" + placeholders + ")";
+        Object[] args = ids.toArray();
+        List<Film> films = jdbcTemplate.query(sql, this::mapRowToFilm, args);
+        Map<Integer, Film> byId = films.stream()
+                .collect(Collectors.toMap(Film::getId, f -> f));
+        return ids.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<Film> getRecommendedFilms(long userId) {
 
         String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
@@ -176,59 +196,25 @@ public class FilmDbStorage implements FilmStorage {
                 ")";
 
         return jdbcTemplate.query(recommendedFilmsQuery,
-                new FilmRowMapper(),
+                this::mapRowToFilm,
                 similarUserId,
                 userId);
     }
 
-    private class FilmRowMapper implements RowMapper<Film> {
-        @Override
-        public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
-            int filmId = rs.getInt("film_id");
-            List<Director> directors = getDirectorForFilm(filmId);
-            return Film.builder()
-                    .id(rs.getInt("film_id"))
-                    .name(rs.getString("name"))
-                    .description(rs.getString("description"))
-                    .releaseDate(rs.getDate("release_date").toLocalDate())
-                    .duration(rs.getInt("duration"))
-                    .mpa(new MpaRating(
-                            rs.getInt("rating_id"),
-                            rs.getString("mpa_name")))
-                    .likes(getLikesForFilm(filmId))
-                    .genres(getOrderedGenresForFilm(filmId))
-                    .directors(directors != null ? directors : new ArrayList<>())
-                    .build();
-        }
-    }
-
     private Map<String, Object> filmToMap(Film film) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("name", film.getName());
-        values.put("description", film.getDescription());
-        values.put("release_date", film.getReleaseDate());
-        values.put("duration", film.getDuration());
-        values.put("rating_id", film.getMpa().getId());
-        return values;
+        return toFilmMap(film);
     }
 
     private Film mapRowToFilm(ResultSet rs, int rowNum) throws SQLException {
-        int filmId = rs.getInt("film_id");
-        List<Director> directors = getDirectorForFilm(filmId);
+        Film film = FILM_ROW_MAPPER.mapRow(rs, rowNum);
 
-        return Film.builder()
-                .id(filmId)
-                .name(rs.getString("name"))
-                .description(rs.getString("description"))
-                .releaseDate(rs.getDate("release_date").toLocalDate())
-                .duration(rs.getInt("duration"))
-                .mpa(new MpaRating(
-                        rs.getInt("rating_id"),
-                        rs.getString("mpa_name")))
-                .likes(getLikesForFilm(filmId))
-                .genres(getOrderedGenresForFilm(filmId))
-                .directors(directors != null ? directors : new ArrayList<>())
-                .build();
+        int filmId = film.getId();
+
+        film.setLikes(getLikesForFilm(filmId));
+        film.setGenres(getOrderedGenresForFilm(filmId));
+        film.setDirectors(getDirectorForFilm(filmId));
+
+        return film;
     }
 
     private List<Genre> getOrderedGenresForFilm(int filmId) {
@@ -236,7 +222,7 @@ public class FilmDbStorage implements FilmStorage {
                 "FROM film_genres fg " +
                 "JOIN genres g ON fg.genre_id = g.genre_id " +
                 "WHERE fg.film_id = ? " +
-                "ORDER BY g.genre_id"; // Сортировка по ID жанра
+                "ORDER BY g.genre_id";
 
         return jdbcTemplate.query(sql, (rs, rowNum) ->
                         new Genre(rs.getInt("genre_id"), rs.getString("name")),
@@ -308,7 +294,7 @@ public class FilmDbStorage implements FilmStorage {
         if (directors != null && !directors.isEmpty()) {
             List<Long> directorsIdList = directors.stream()
                     .map(Director::getId)
-                    .collect(Collectors.toList());
+                    .toList();
 
             List<Object[]> batchArgs = directorsIdList.stream()
                     .map(directorsId -> new Object[]{filmId, directorsId})

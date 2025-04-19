@@ -6,27 +6,26 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
-import ru.yandex.practicum.filmorate.model.Film;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static ru.yandex.practicum.filmorate.storage.RowMappers.USER_ROW_MAPPER;
+import static ru.yandex.practicum.filmorate.storage.RowMappers.toUserMap;
+
 @Repository
 @Qualifier("UserDbStorage")
 public class UserDbStorage implements UserStorage {
     private final JdbcTemplate jdbcTemplate;
-    private final FilmStorage filmStorage;
 
-    public UserDbStorage(JdbcTemplate jdbcTemplate, @Qualifier("FilmDbStorage") FilmStorage filmStorage) {
+    public UserDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.filmStorage = filmStorage;
     }
 
     @Override
@@ -57,11 +56,11 @@ public class UserDbStorage implements UserStorage {
         try {
             String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
             jdbcTemplate.update(sql,
-            user.getEmail(),
-            user.getLogin(),
-            user.getName(),
-            user.getBirthday(),
-            user.getId());
+                    user.getEmail(),
+                    user.getLogin(),
+                    user.getName(),
+                    user.getBirthday(),
+                    user.getId());
             updateFriendships(user.getId(), user.getFriends());
             return getById(user.getId());
         } catch (EmptyResultDataAccessException e) {
@@ -120,7 +119,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
-    public List<Film> getRecommendedFilms(long userId) {
+    public List<Integer> getRecommendedFilms(long userId) {
 
         if (!userExists(userId)) {
             throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
@@ -138,22 +137,14 @@ public class UserDbStorage implements UserStorage {
                 (rs, rowNum) -> rs.getLong("user_id"),
                 userId);
 
-        if (similarUserIds == null) {
-            return Collections.emptyList();
-        }
-
-        Long similarUserId = similarUserIds.get(0);
+        Long similarUserId = similarUserIds.getFirst();
 
         String recFilmsSql =
                 "SELECT film_id FROM likes " +
                         "WHERE user_id = ? " +
                         "  AND film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?)";
-        List<Integer> filmIds = jdbcTemplate.queryForList(recFilmsSql, Integer.class,
+        return jdbcTemplate.queryForList(recFilmsSql, Integer.class,
                 similarUserId, userId);
-
-        return filmIds.stream()
-                .map(filmStorage::getFilmById)
-                .collect(Collectors.toList());
     }
 
 
@@ -164,27 +155,17 @@ public class UserDbStorage implements UserStorage {
                 Integer.class,
                 userId
         );
-        return count != null && count > 0;
+        return count > 0;
     }
 
     private Map<String, Object> userToMap(User user) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("email", user.getEmail());
-        values.put("login", user.getLogin());
-        values.put("name", user.getName());
-        values.put("birthday", user.getBirthday());
-        return values;
+        return toUserMap(user);
     }
 
     private User mapRowToUser(ResultSet rs, int rowNum) throws SQLException {
-        return User.builder()
-                .id(rs.getLong("user_id"))
-                .email(rs.getString("email"))
-                .login(rs.getString("login"))
-                .name(rs.getString("name"))
-                .birthday(rs.getDate("birthday").toLocalDate())
-                .friends(getFriendsForUser(rs.getLong("user_id")))
-                .build();
+        User user = USER_ROW_MAPPER.mapRow(rs, rowNum);
+        user.setFriends(getFriendsForUser(user.getId()));
+        return user;
     }
 
     private Set<Long> getFriendsForUser(long userId) {
@@ -204,8 +185,8 @@ public class UserDbStorage implements UserStorage {
                     "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)",
                     batchArgs
             );
-           }
         }
+    }
 
     @Override
     public boolean isFriends(long userId, long friendId) {
@@ -215,7 +196,6 @@ public class UserDbStorage implements UserStorage {
                 userId,
                 friendId
         );
-        return count != null && count > 0;
+        return count > 0;
     }
-
 }

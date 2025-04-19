@@ -9,15 +9,21 @@ import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
     private final UserStorage userStorage;
+    private final FilmStorage filmStorage;
 
-    public UserService(@Qualifier("UserDbStorage") UserStorage userStorage) {
+    public UserService(@Qualifier("UserDbStorage") UserStorage userStorage,
+                       @Qualifier("FilmDbStorage") FilmStorage filmStorage) {
         this.userStorage = userStorage;
+        this.filmStorage = filmStorage;
     }
 
     public User createUser(User user) {
@@ -47,7 +53,6 @@ public class UserService {
     }
 
     public User addFriend(long userId, long friendId) {
-        // Проверяем существование пользователей
         User user = userStorage.getById(userId);
         if (user == null) {
             throw new NotFoundException("Пользователь с id " + userId + " не найден");
@@ -67,11 +72,11 @@ public class UserService {
         return userStorage.addFriend(userId, friendId);
     }
 
-    public User removeFriend(long userId, long friendId) {
+    public void removeFriend(long userId, long friendId) {
         if (userStorage.getById(userId) == null || userStorage.getById(friendId) == null) {
             throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
-        return userStorage.removeFriend(userId, friendId);
+        userStorage.removeFriend(userId, friendId);
     }
 
     public List<User> getFriends(long userId) {
@@ -90,8 +95,8 @@ public class UserService {
             if (!userStorage.userExists(userId)) {
                 throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
             }
-            List<Film> recommendations = userStorage.getRecommendedFilms(userId);
-            return recommendations == null ? Collections.emptyList() : recommendations;
+            List<Integer> filmIds = userStorage.getRecommendedFilms(userId);
+            return filmStorage.getFilmsByIds(filmIds);
         } catch (UserNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (Exception e) {
