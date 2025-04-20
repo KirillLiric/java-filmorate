@@ -6,9 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.annotations.EventListen;
-import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 
 import java.sql.ResultSet;
@@ -35,9 +33,9 @@ public class ReviewDbStorage implements ReviewStorage {
         boolean filmExists = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM films WHERE film_id = ?", Integer.class, review.getFilmId()) > 0;
 
         if (!userExists) {
-            throw new UserNotFoundException("Пользователь c id = " + review.getUserId() + " не найден");
+            throw new NotFoundException("Пользователь c id = " + review.getUserId() + " не найден");
         } else if (!filmExists) {
-            throw new FilmNotFoundException("Фильм с id = " + review.getFilmId() + " не найден");
+            throw new NotFoundException("Фильм с id = " + review.getFilmId() + " не найден");
         }
         SimpleJdbcInsert insert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("reviews")

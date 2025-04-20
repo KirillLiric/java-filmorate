@@ -3,7 +3,7 @@ package ru.yandex.practicum.filmorate.storage.mpa;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.exceptions.RatingNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 
 import java.util.Collection;
@@ -31,7 +31,7 @@ public class MpaDbStorage implements MpaStorage {
         return jdbcTemplate.query(sql, MPA_ROW_MAPPER, id)
                 .stream()
                 .findFirst()
-                .orElseThrow(() -> new RatingNotFoundException("Рейтинг MPA с id " + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id " + id + " не найден"));
     }
 
     @Override
@@ -39,7 +39,7 @@ public class MpaDbStorage implements MpaStorage {
         String sql = "DELETE FROM mpa_rating WHERE rating_id = ?";
         int rowsAffected = jdbcTemplate.update(sql, id);
         if (rowsAffected == 0) {
-            throw new RatingNotFoundException("Рейтинг MPA с id " + id + " не найден");
+            throw new NotFoundException("Рейтинг MPA с id " + id + " не найден");
         }
         return true;
     }

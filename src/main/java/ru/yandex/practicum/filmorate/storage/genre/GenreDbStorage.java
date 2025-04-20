@@ -3,7 +3,7 @@ package ru.yandex.practicum.filmorate.storage.genre;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.exceptions.GenreNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 
 import java.util.Collection;
@@ -31,7 +31,7 @@ public class GenreDbStorage implements GenreStorage {
         return jdbcTemplate.query(sql, GENRE_ROW_MAPPER, id)
                 .stream()
                 .findFirst()
-                .orElseThrow(() -> new GenreNotFoundException("Жанр с id " + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Жанр с id " + id + " не найден"));
     }
 
     @Override
@@ -39,7 +39,7 @@ public class GenreDbStorage implements GenreStorage {
         String sql = "DELETE FROM genres WHERE genre_id = ?";
         int rowsAffected = jdbcTemplate.update(sql, id);
         if (rowsAffected == 0) {
-            throw new GenreNotFoundException("Жанр с id " + id + " не найден");
+            throw new NotFoundException("Жанр с id " + id + " не найден");
         }
         return true;
     }

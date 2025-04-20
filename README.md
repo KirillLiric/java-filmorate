@@ -3,41 +3,43 @@ Template repository for Filmorate project.
 
 ![Filmorate_schema](./src/main/resources/Filmorate.png)
 
- Основные сущности:
+ Описание схемы:
+1) users - хранит информацию о пользователях
 
-1) users - информация о пользователях
+2) films - хранит информацию о фильмах
 
-2) films - данные о фильмах
-
-3) mpa_ratings - справочник возрастных рейтингов
+3) mpa_rating - справочник возрастных рейтингов
 
 4) genres - справочник жанров
 
-Получение топ-10 популярных фильмов: 
+5) film_genres - связь фильмов и жанров
 
-SELECT f.id, f.name, COUNT(l.user_id) AS likes_count
-FROM films f
-LEFT JOIN likes l ON f.id = l.film_id
-GROUP BY f.id
-ORDER BY likes_count DESC
-LIMIT 10;
+6) directors - режиссеры фильмов
 
-Получение фильмов по жанру:
+7) film_directors - связь фильмов и режиссеров
 
-SELECT f.*
-FROM films f
-JOIN film_genres fg ON f.id = fg.film_id
-JOIN genres g ON fg.genre_id = g.id
-WHERE g.name = 'Комедия';
+8) likes - лайки пользователей
 
-Получение общих друзей SELECT u.*
-FROM users u
-JOIN friendships f1 ON u.id = f1.friend_id AND f1.user_id = 123
-JOIN friendships f2 ON u.id = f2.friend_id AND f2.user_id = 456
-WHERE f1.status = 'CONFIRMED' AND f2.status = 'CONFIRMED';
+9) friendships - дружеские связи
 
-Добавление нового фильма
+10) reviews - отзывы о фильмах
 
-INSERT INTO films (name, description, release_date, duration, mpa_rating)
-VALUES ('Новый фильм', 'Описание нового фильма', '2023-01-01', 120, 'PG-13')
-RETURNING *;
+11) review_likes - оценки отзывов
+
+12) feed - лента пользовательских событий:
+
+В рамках заданий был реализован следующий функционал:
+
+1) Реализован вывод общих с другом фильмов с сортировкой по их популярности
+
+2) Добавлена возможность выводить топ-N фильмов по количеству лайков
+
+3) Добавлена функциональность для удаления фильма и пользователя по идентификатору
+
+4) Реализована рекомендательная система для фильмов
+
+5) Реализована возможность просмотра последних событий на платформе
+
+6) Добавлена сущность режиссер и реализован поиск по названию фильмов и по режиссеру
+
+7) Добавлена сущность отзывы

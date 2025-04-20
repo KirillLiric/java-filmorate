@@ -5,7 +5,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
@@ -92,11 +91,11 @@ public class UserService {
     public List<Film> getRecommendedFilms(long userId) {
         try {
             if (!userStorage.userExists(userId)) {
-                throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+                throw new NotFoundException("Пользователь с id " + userId + " не найден");
             }
             List<Integer> filmIds = userStorage.getRecommendedFilms(userId);
             return filmStorage.getFilmsByIds(filmIds);
-        } catch (UserNotFoundException e) {
+        } catch (NotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (Exception e) {
             return Collections.emptyList();

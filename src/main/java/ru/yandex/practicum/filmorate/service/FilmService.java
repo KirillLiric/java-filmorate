@@ -74,20 +74,20 @@ public class FilmService {
 
     public Film addLike(int filmId, long userId) {
         if (filmStorage.getFilmById(filmId) == null) {
-            throw new FilmNotFoundException("Пользователь с id " + userId + " не найден");
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
         if (userStorage.getById(userId) == null) {
-            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
         return filmStorage.addLike(filmId, userId);
     }
 
     public Film removeLike(int filmId, long userId) {
         if (filmStorage.getFilmById(filmId) == null) {
-            throw new FilmNotFoundException("Пользователь с id " + userId + " не найден");
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
         if (userStorage.getById(userId) == null) {
-            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
         return filmStorage.removeLike(filmId, userId);
     }

@@ -19,8 +19,8 @@ public class UserController {
     private final UserService userService;
     private final FeedService feedService;
 
-    public UserController(UserService userService, FeedService feedService1) {
-        this.feedService = feedService1;
+    public UserController(UserService userService, FeedService feedService) {
+        this.feedService = feedService;
         this.userService = userService;
     }
 

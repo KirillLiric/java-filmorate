@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.annotations.EventListen;
-import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -68,7 +68,7 @@ public class FilmDbStorage implements FilmStorage {
         return jdbcTemplate.query(sql, this::mapRowToFilm, id)
                 .stream()
                 .findFirst()
-                .orElseThrow(() -> new FilmNotFoundException("Фильм с id " + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден"));
     }
 
     @Override

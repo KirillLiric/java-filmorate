@@ -5,9 +5,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
-import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -122,7 +121,7 @@ public class UserDbStorage implements UserStorage {
     public List<Integer> getRecommendedFilms(long userId) {
 
         if (!userExists(userId)) {
-            throw new UserNotFoundException("Пользователь с id " + userId + " не найден");
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
 
         String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
