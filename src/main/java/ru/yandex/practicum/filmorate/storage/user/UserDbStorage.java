@@ -5,11 +5,18 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.filmorate.annotations.EventListen;
 import ru.yandex.practicum.filmorate.model.User;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static ru.yandex.practicum.filmorate.storage.RowMappers.USER_ROW_MAPPER;
+import static ru.yandex.practicum.filmorate.storage.RowMappers.toUserMap;
 
 @Repository
 @Qualifier("UserDbStorage")
@@ -29,7 +36,7 @@ public class UserDbStorage implements UserStorage {
                     id
             );
         } catch (EmptyResultDataAccessException e) {
-            return null;
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
     }
 
@@ -48,11 +55,11 @@ public class UserDbStorage implements UserStorage {
         try {
             String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
             jdbcTemplate.update(sql,
-            user.getEmail(),
-            user.getLogin(),
-            user.getName(),
-            user.getBirthday(),
-            user.getId());
+                    user.getEmail(),
+                    user.getLogin(),
+                    user.getName(),
+                    user.getBirthday(),
+                    user.getId());
             updateFriendships(user.getId(), user.getFriends());
             return getById(user.getId());
         } catch (EmptyResultDataAccessException e) {
@@ -67,12 +74,16 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    @Transactional
     public boolean delete(long id) {
-        String sql = "DELETE FROM users WHERE user_id = ?";
-        return jdbcTemplate.update(sql, id) > 0;
+        User user = getById(id);
+        jdbcTemplate.update("DELETE FROM friendships WHERE user_id = ? OR friend_id = ?", id, id);
+        jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id);
+        return jdbcTemplate.update("DELETE FROM users WHERE user_id = ?", id) > 0;
     }
 
     @Override
+    @EventListen(eventType = "FRIEND", operation = "ADD")
     public User addFriend(long userId, long friendId) {
         String sql = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, userId, friendId);
@@ -80,6 +91,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
+    @EventListen(eventType = "FRIEND", operation = "REMOVE")
     public User removeFriend(long userId, long friendId) {
         String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
         jdbcTemplate.update(sql, userId, friendId);
@@ -105,24 +117,54 @@ public class UserDbStorage implements UserStorage {
         return jdbcTemplate.query(sql, this::mapRowToUser, userId, otherId);
     }
 
+    @Override
+    public List<Integer> getRecommendedFilms(long userId) {
+
+        if (!userExists(userId)) {
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
+
+        String similarUsersQuery = "SELECT l2.user_id, COUNT(l2.film_id) AS common_likes " +
+                "FROM likes l1 " +
+                "JOIN likes l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
+                "WHERE l1.user_id = ? " +
+                "GROUP BY l2.user_id " +
+                "ORDER BY common_likes DESC " +
+                "LIMIT 1";
+
+        List<Long> similarUserIds = jdbcTemplate.query(similarUsersQuery,
+                (rs, rowNum) -> rs.getLong("user_id"),
+                userId);
+
+        Long similarUserId = similarUserIds.getFirst();
+
+        String recFilmsSql =
+                "SELECT film_id FROM likes " +
+                        "WHERE user_id = ? " +
+                        "  AND film_id NOT IN (SELECT film_id FROM likes WHERE user_id = ?)";
+        return jdbcTemplate.queryForList(recFilmsSql, Integer.class,
+                similarUserId, userId);
+    }
+
+
+    @Override
+    public boolean userExists(long userId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE user_id = ?",
+                Integer.class,
+                userId
+        );
+        return count > 0;
+    }
+
     private Map<String, Object> userToMap(User user) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("email", user.getEmail());
-        values.put("login", user.getLogin());
-        values.put("name", user.getName());
-        values.put("birthday", user.getBirthday());
-        return values;
+        return toUserMap(user);
     }
 
     private User mapRowToUser(ResultSet rs, int rowNum) throws SQLException {
-        return User.builder()
-                .id(rs.getLong("user_id"))
-                .email(rs.getString("email"))
-                .login(rs.getString("login"))
-                .name(rs.getString("name"))
-                .birthday(rs.getDate("birthday").toLocalDate())
-                .friends(getFriendsForUser(rs.getLong("user_id")))
-                .build();
+        User user = USER_ROW_MAPPER.mapRow(rs, rowNum);
+        user.setFriends(getFriendsForUser(user.getId()));
+        return user;
     }
 
     private Set<Long> getFriendsForUser(long userId) {
@@ -142,8 +184,8 @@ public class UserDbStorage implements UserStorage {
                     "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)",
                     batchArgs
             );
-           }
         }
+    }
 
     @Override
     public boolean isFriends(long userId, long friendId) {
@@ -153,6 +195,6 @@ public class UserDbStorage implements UserStorage {
                 userId,
                 friendId
         );
-        return count != null && count > 0;
+        return count > 0;
     }
 }

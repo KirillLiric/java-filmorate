@@ -1,24 +1,38 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.FeedEvent;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FeedService;
 import ru.yandex.practicum.filmorate.service.UserService;
 import jakarta.validation.Valid;
+
 import java.util.Collection;
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
-@RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final FeedService feedService;
+
+    public UserController(UserService userService, FeedService feedService) {
+        this.feedService = feedService;
+        this.userService = userService;
+    }
 
     @GetMapping
     public Collection<User> getAllUsers() {
         return userService.getAllUsers();
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteUser(@PathVariable long id) {
+        userService.deleteUser(id);
     }
 
     @GetMapping("/{id}")
@@ -58,8 +72,18 @@ public class UserController {
         return userService.getFriends(id);
     }
 
+    @GetMapping("/{id}/recommendations")
+    public List<Film> getRecommendedFilms(@PathVariable long id) {
+        return userService.getRecommendedFilms(id);
+    }
+
     @GetMapping("/{id}/friends/common/{otherId}")
     public List<User> getCommonFriends(@PathVariable long id, @PathVariable long otherId) {
         return userService.getCommonFriends(id, otherId);
+    }
+
+    @GetMapping("/{id}/feed")
+    public List<FeedEvent> getUserFeed(@PathVariable long id) {
+        return feedService.getUserFeed(id);
     }
 }

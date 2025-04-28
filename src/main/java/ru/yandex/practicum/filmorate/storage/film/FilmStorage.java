@@ -22,4 +22,17 @@ public interface FilmStorage {
 
     List<Film> getPopularFilms(int count);
 
+    List<Film> getRecommendedFilms(long userId);
+
+    List<Film> getDirectorFilmsOrderYear(Long directorId);
+
+    List<Film> getDirectorFilmsOrderLikes(Long directorId);
+
+    List<Film> searchFilms(String query, boolean byTitle, boolean byDirector);
+
+    List<Film> getPopularFilms(int count, Integer genreId, Integer year);
+
+    List<Film> getCommonFilms(long userId, long friendId);
+
+    List<Film> getFilmsByIds(List<Integer> ids);
 }

@@ -26,4 +26,8 @@ public interface UserStorage {
 
     boolean isFriends(long userId, long friendId);
 
+    List<Integer> getRecommendedFilms(long userId);
+
+    boolean userExists(long userId);
+
 }
